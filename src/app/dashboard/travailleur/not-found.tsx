@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function WorkerNotFound() { return <div className="rq-panel rq-error-page"><h1>Élément introuvable</h1><p className="rq-subtle" style={{ marginTop: 12, marginBottom: 24 }}>Cette mission n’est plus disponible ou cette candidature n’est pas accessible depuis votre compte.</p><Link className="rq-button rq-primary" href="/dashboard/travailleur/missions">Trouver une mission</Link></div>; }

@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url = env("DATABASE_URL")
+}
+
+model User {
+  id Int @id @default(autoincrement())
+  name String
+  firstName String @default("")
+  phone String @default("")
+  role String @default("TRAVAILLEUR")
+  suspended Boolean @default(false)
+  sessions Session[]
+  missions Mission[]
+  applications Application[]
+  city String?
+  recruiterType String?
+  companyName String?
+  sector String?
+  bio String?
+  avatarUrl String?
+  skills String?
+  experience String?
+  languages String?
+  email String @unique
+  password String
+  createdAt DateTime @default(now())
+}
+
+model Session {
+  id String @id
+  userId Int
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  @@index([userId])
+}
+model Mission {
+  id Int @id @default(autoincrement())
+  title String
+  description String
+  status String @default("PUBLISHED")
+  category String?
+  city String?
+  address String?
+  date DateTime?
+  startTime String?
+  endTime String?
+  pay Float?
+  capacity Int @default(1)
+  skills String?
+  experience String?
+  recruiterId Int
+  recruiter User @relation(fields: [recruiterId], references: [id])
+  applications Application[]
+  createdAt DateTime @default(now())
+  @@index([recruiterId])
+}
+model Application {
+  id Int @id @default(autoincrement())
+  missionId Int
+  mission Mission @relation(fields: [missionId], references: [id])
+  workerId Int
+  worker User @relation(fields: [workerId], references: [id])
+  status String @default("PENDING")
+  message String?
+  createdAt DateTime @default(now())
+  @@unique([missionId, workerId])
+  @@index([workerId])
+}

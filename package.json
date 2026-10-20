@@ -1,0 +1,48 @@
+{
+  "name": "quickjob",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test:auth": "node scripts/test-auth.mjs",
+    "test:auth:browser": "node scripts/test-auth-transition-browser.mjs",
+    "test:home:browser": "node scripts/test-home-browser.mjs",
+    "test:roles": "node scripts/test-roles.mjs",
+    "test:recruiter": "node scripts/test-recruiter.mjs",
+    "test:recruiter:browser": "node scripts/test-recruiter-browser.mjs",
+    "test:worker": "node scripts/test-worker.mjs",
+    "test:worker:browser": "node scripts/test-worker-browser.mjs",
+    "admin:role": "node scripts/admin-role.mjs",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.1",
+    "bcryptjs": "^3.0.3",
+    "gsap": "^3.15.0",
+    "jose": "^6.2.12",
+    "next": "16.3.8",
+    "prisma": "^6.19.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "three": "^0.182.0",
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/three": "^0.182.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.8",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,2 @@
+"use client";
+export default function WorkerError({ reset }: { reset: () => void }) { return <div className="rq-panel rq-error-page"><h1>Votre espace est momentanément indisponible</h1><p className="rq-subtle" style={{ marginTop: 12, marginBottom: 24 }}>Les informations n’ont pas pu être chargées. Réessayez dans un instant.</p><button className="rq-button rq-primary" onClick={reset}>Réessayer</button></div>; }
