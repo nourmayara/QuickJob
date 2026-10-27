@@ -1,30 +1,25 @@
-# QuickJob City — Hybrid experience
+# QuickJob City
 
-The Home reuses the original Three.js city, local geometry, logo, fonts, GSAP and HTML components. No dependency, external model, HDR or texture service was added.
+The Home is a single persistent WebGL world. No external models, HDRs, fonts, or texture requests are made by the scene. Buildings are original Three.js geometry, and signs are generated with local canvas textures.
 
-One parent owns the selected journey, the remembered step for each journey, the selected sector and the overview state. The guide, points of interest, camera, visible copy and action links all follow that state. Free exploration and the guide are two ways to navigate the same experience.
+- `CityExperience.tsx`: lazy Canvas loading, capability detection, GSAP timeline (`pin`, `scrub`), chapter navigation, simplified mode and mission dialog. The GSAP context is reverted on cleanup.
+- `CityWorld.tsx`: architecture, furniture, landscaping, lighting and the luminous route. One static desktop shadow map; mobile shadows are disabled.
+- `CameraRig.tsx`: continuous camera and look-at curves, sampled from scroll progress. Mission coordinates are projected into regular HTML buttons without separate React roots.
+- `TourContent.tsx` / `CityNavigation.tsx`: accessible HTML content and navigation, independent of WebGL.
+- `MissionCard.tsx`: shared mission content including date, duration, location and pay. Desktop cards follow projected building anchors; mobile and simplified views use an inline card.
+- `RecruiterDemo.tsx`: a scroll-driven illustration of publishing a mission, receiving three fictional applications and selecting a worker. Its step buttons provide direct access, including with reduced motion or no WebGL. Profile dialogs preserve the chosen candidate. No real publication or selection is performed.
+- `data.ts`: fictional missions and candidate profiles, five narrative chapters grouped into four navigation steps, and camera waypoints. Adjust `cameraStops` to edit the journey. Recruiter phase boundaries are defined in `getRecruitMoment` (.648 publication, .672 applications, .738 acceptance, .758 confirmation).
+- `CityFallback.tsx`: original SVG illustration, shown only when the visitor explicitly selects the simplified view.
+- `CityPoster.tsx`: lightweight WebP captures of the actual opening scene, rendered in the initial server HTML. Desktop and mobile use their corresponding camera framing. The poster remains visible while the Canvas bundle initializes and when WebGL is unavailable; the SVG is only shown after explicitly selecting the simplified view.
 
-- `CityExperience.tsx`: capabilities, shared state, native scrolling and the illustrated/WebGL switch.
-- `CityNavigation.tsx`: header, contextual authentication links and the accessible responsive menu.
-- `TourContent.tsx`: selected step, immediate real action and explicit authentication note.
-- `JourneyRail.tsx`: three directly accessible steps, active state and the QuickJob thread.
-- `hybrid.ts`: content, sectors and bounded camera views.
-- `CameraRig.tsx`: interrupted transitions resume from the current position; HTML sector controls follow their anchors and are placed without overlapping.
-- `CityCanvas.tsx`: demand rendering, first-frame readiness, shadow lifecycle and context-loss handling.
-- `CityWorld.tsx`: modern white/lavender architecture, stepped roof terraces, indigo glazing, a continuous purple street and stable soft lighting. Window panes are instanced per building.
-- `cityArt.ts`: shared palette and street layout for the live city and illustration.
-- `CityFallback.tsx`: local isometric SVG city with the same visual identity, highlighted sector and HTML controls.
-- `city.css`: scoped composition, dark theme, touch targets, responsive order and reduced motion.
-- `src/lib/journey.ts`: two allowed intentions and role-compatible destinations. Intent never grants permissions.
+The renderer uses `frameloop="demand"`: GSAP invalidates frames while its scrub tween changes progress. No continuous render loop runs while the scene is idle. Device pixel ratio is capped at 1.6 desktop / 1.25 mobile. Context loss switches to the actual-city poster. Reduced motion disables pinning and animated travel; chapter buttons select static views instead.
 
-Desktop loads the city after capability detection. Tablet/mobile starts with an illustration; 3D is optional. Reduced motion uses the illustration and all journey controls without animation. No WebGL or a lost context retains the current journey and real action. There is no pinned scroll or nested scrolling area.
+The live canvas remains invisible, with its layout preserved, until CameraRig and CityWorld have prepared and rendered the first complete frame. The poster is then replaced by the interactive scene without briefly displaying the schematic SVG. Returning from simplified mode resets readiness before mounting a new Canvas.
 
-The geometry viewport is separate from the reading area, so a building cannot pass behind the text. An orthographic camera maintains the architectural isometric view without perspective zoom; its scale fits the viewport. Rendering stops when transitions settle. The art direction uses local geometry and SVG, with no raster illustration or downloaded model.
+`public/images/quickjob-city-desktop.webp` (about 50 KB) and `quickjob-city-mobile.webp` (about 32 KB) contain only the Three.js scene, without text, buttons or navigation. They are eager-loaded with high fetch priority and need to be recaptured when the opening geometry or camera changes. Capture the canvas at progress 0 with `preserveDrawingBuffer` enabled only in the capture browser; the production renderer keeps its default buffer behavior.
 
-The Home presents sectors, not fictional job availability. The previous mission/candidate demonstration components are no longer mounted. Real jobs, applications and publication remain in the existing protected pages.
+Loading verification: production build, TypeScript and scoped ESLint passed. A Chrome session passed 59 checks at 1920×1080, 1440×900, 1366×768, 768×1024 and 390×844: server HTML with JavaScript disabled, decoded responsive poster, first complete WebGL frame, no automatic SVG flash, renderer idle, simplified-view round trip, reduced motion, chapter navigation, lost/unavailable WebGL and cold-cache slow-network loading. No accounts or database fixtures were created. Evidence is in `.artifacts/city-loading-checks.json` and the `city-loading-*.png` captures. This does not claim a rerun of the older hybrid Home recipe, whose selectors belong to a different Home composition.
 
-The server supplies the authenticated role. The existing authentication form can receive a public journey intention; actual server roles still determine the permitted post-login destination. The default authentication flow and its persistent form transitions are preserved.
+The Home uses a light premium palette (#F8FAFF / #18244A / #4F46E5 / #8B5CF6). Only the application journey enters a cinematic atmosphere (#11152C); lighting and background changes follow scroll progress in both directions. Existing camera positions and building locations are retained.
 
-Run `npm run test:home:browser` against a local server (`TEST_BASE_URL`, default port 3100). The browser recipe covers nine resolutions, keyboard, both journeys, free exploration, rendering at rest, mobile 3D opt-in, reduced motion, no/lost WebGL, real temporary signups/logins and permission boundaries. Fixtures are removed in `finally`.
-
-See [HYBRID_CITY.md](../../../HYBRID_CITY.md) for the full French implementation notes, file list, validation and limits.
+Run `npm run dev` and open `/`. Scroll forward and backward or use the chapter navigation. Existing login/register routes are retained; the Home does not create real offers or accept real applications.

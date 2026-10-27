@@ -5,6 +5,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { dashboardPath } from "@/lib/roles";
 import { destinationAfterAuth, type Journey } from "@/lib/journey";
+import { recruiterApprovalPath } from "@/lib/recruiter-approval";
 
 function PasswordField({ confirm = false, register = false }: { confirm?: boolean; register?: boolean }) {
   const [visible, setVisible] = useState(false);
@@ -46,7 +47,7 @@ export default function AuthForm({ mode, disabled = false, onRoleChange, onBusyC
       const result = await response.json().catch(() => ({}));
       if (!response.ok) { setError(result.error ?? "Une erreur est survenue"); return; }
       const selectedIntent = intent && register ? role === "RECRUTEUR" ? "recruteur" : "travailleur" : intent;
-      router.push(selectedIntent ? destinationAfterAuth(result.role, selectedIntent) : dashboardPath(result.role)); router.refresh();
+      router.push(result.role === "RECRUTEUR" ? recruiterApprovalPath(result.recruiterVerification?.status) : selectedIntent ? destinationAfterAuth(result.role, selectedIntent) : dashboardPath(result.role)); router.refresh();
     } catch { setError("Connexion au serveur impossible. Réessayez."); }
     finally { setLoading(false); onBusyChange?.(false); }
   }

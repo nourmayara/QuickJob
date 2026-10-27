@@ -29,6 +29,34 @@ model User {
   email String @unique
   password String
   createdAt DateTime @default(now())
+  recruiterVerification RecruiterVerification? @relation("RecruiterVerificationOwner")
+  recruiterDecisions RecruiterVerification[] @relation("RecruiterVerificationAdmin")
+  notifications Notification[]
+}
+
+model RecruiterVerification {
+  userId Int @id
+  user User @relation("RecruiterVerificationOwner", fields: [userId], references: [id], onDelete: Cascade)
+  status String @default("EN_ATTENTE")
+  requestedAt DateTime? @default(now())
+  decidedAt DateTime?
+  decidedById Int?
+  decidedBy User? @relation("RecruiterVerificationAdmin", fields: [decidedById], references: [id], onDelete: SetNull)
+  refusalReason String?
+  legacy Boolean @default(false)
+  notification Notification?
+  @@index([status, requestedAt])
+}
+
+model Notification {
+  id Int @id @default(autoincrement())
+  userId Int
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message String
+  createdAt DateTime @default(now())
+  verificationId Int? @unique
+  verification RecruiterVerification? @relation(fields: [verificationId], references: [userId], onDelete: Cascade)
+  @@index([userId, createdAt])
 }
 
 model Session {

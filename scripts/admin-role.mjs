@@ -11,6 +11,7 @@ const prisma = new PrismaClient();
 try {
   const result = await prisma.$transaction(async tx => {
     const user = await tx.user.update({where:{id:Number(id)},data:{role},select:{id:true,role:true}});
+    if (role === "RECRUTEUR") await tx.recruiterVerification.upsert({where:{userId:user.id},update:{},create:{userId:user.id,status:"EN_ATTENTE",requestedAt:new Date()}});
     await tx.session.updateMany({where:{userId:user.id},data:{expiresAt:new Date(0)}});
     return user;
   });

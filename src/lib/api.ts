@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { requireRole, type Role } from "./authorization";
+import { requireApprovedRecruiter, requireRole, type Role } from "./authorization";
 import { missionCreateSchema, missionPatchSchema } from "./recruiter-validation";
 import { RecruiterError } from "./recruiter-service";
 import { WorkerError } from "./worker-service";
@@ -15,6 +15,10 @@ export function protectedRoute(roles: readonly Role[], handler: (request: Reques
   return async (request: Request, context: RouteContext) => {
     const auth = await requireRole(roles);
     if (auth.response) return auth.response;
+    if (auth.user.role === "RECRUTEUR") {
+      const approved = await requireApprovedRecruiter();
+      if (approved.response) return approved.response;
+    }
     try { return await handler(request, context, auth.user); }
     catch (error) {
       if (error instanceof RecruiterError || error instanceof WorkerError) return fail(error.status, error.message);

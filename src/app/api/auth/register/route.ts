@@ -11,8 +11,8 @@ export async function POST(request: Request) {
   const { name, email, password, firstName, phone, role, city, recruiterType, companyName } = parsed.data;
   try {
     const user = await prisma.user.create({
-      data: { name, email, firstName, phone, role, city: role === "TRAVAILLEUR" ? city : null, recruiterType: role === "RECRUTEUR" ? recruiterType : null, companyName: role === "RECRUTEUR" && recruiterType === "COMPANY" ? companyName : null, password: await bcrypt.hash(password, 10) },
-      select: { id: true, name: true, email: true, role: true },
+      data: { name, email, firstName, phone, role, city: role === "TRAVAILLEUR" ? city : null, recruiterType: role === "RECRUTEUR" ? recruiterType : null, companyName: role === "RECRUTEUR" && recruiterType === "COMPANY" ? companyName : null, password: await bcrypt.hash(password, 10), ...(role === "RECRUTEUR" ? { recruiterVerification: { create: { status: "EN_ATTENTE", requestedAt: new Date() } } } : {}) },
+      select: { id: true, name: true, email: true, role: true, recruiterVerification: { select: {status:true} } },
     });
     await createSession(user.id);
     return NextResponse.json(user, { status: 201 });

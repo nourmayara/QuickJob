@@ -1,22 +1,27 @@
 import Link from "next/link";
-import Icon from "@/components/recruiter/Icon";
-import { authHref, journeyAction, type Journey } from "@/lib/journey";
-import { journeySteps } from "./hybrid";
+import { authHref } from "@/lib/journey";
+import MissionCard from "./MissionCard";
+import { chapters, cityMissions, workerSteps, type CityMission } from "./data";
 
-export default function TourContent({ journey, step, role, onExplore }: { journey: Journey; step: number; role: string | null; onExplore: () => void }) {
-  const content = journeySteps[journey][step];
-  const action = journeyAction(journey, role);
-  return <div className="city-content" id="city-tour-copy" tabIndex={-1}>
-    <div className="city-copy-inner" key={journey + step}>
-      <p className="city-eyebrow"><span /> {journey === "travailleur" ? "VOTRE TEMPS. VOS OPPORTUNITÉS." : "VOTRE MISSION. VOTRE ÉQUIPE."}</p>
-      <h1 id="city-heading">{content.title}<br /><em>{content.accent}</em></h1>
-      <p className="city-description">{content.description}</p>
-      <div className="city-context"><span><Icon name={content.icon} size={18} /></span><p>{content.detail}</p></div>
-      <div className="city-actions">
-        <Link className="city-primary" id="city-main-action" href={action.href}>{action.label}<Icon name="arrow" size={18} /></Link>
-        <button className="city-secondary" type="button" onClick={onExplore}><Icon name="grid" size={17} /> Explorer la ville</button>
-      </div>
-      <p className="city-action-note">{action.note} {!role && <Link href={authHref("login", journey)}>Déjà inscrit ? Se connecter</Link>}</p>
-    </div>
-  </div>;
+export default function TourContent({ chapter, missionIndex, onSelect, goTo }: {
+ chapter: number; missionIndex: number; onSelect: (mission: CityMission) => void; goTo: (progress: number) => void;
+}) {
+ const worker = chapter===1 || chapter===2;
+ return <div id="city-tour-copy" tabIndex={-1} aria-label={chapters[chapter].scene} className={`city-content chapter-${chapter}`}>
+  <div className="city-chapter-copy" key={chapter}>
+   {chapter===0 ? <h1>Trouvez une mission.<br /><em>Ou trouvez le bon renfort.</em></h1> : <h2>{chapters[chapter].title}</h2>}
+   <p className="city-description">{chapters[chapter].description}</p>
+   {chapter===1 && <><p className="city-worker-note">Une mission vous intéresse ? Ouvrez sa fiche pour découvrir le lieu, les horaires et la rémunération.</p><nav className="city-mission-picker" aria-label="Choisir un lieu de mission">{cityMissions.slice(0,3).map((mission,i) => <button key={mission.id} aria-pressed={missionIndex===i} onClick={() => goTo([.265,.33,.395][i])}>{mission.category}</button>)}</nav></>}
+   {chapter===2 && <>
+    <div className="city-application-story" aria-label="Illustration du trajet d’une candidature"><span>Vous</span><b aria-hidden="true">→</b><span>Votre candidature</span><b aria-hidden="true">→</b><span>Le recruteur</span></div>
+    <ol className="city-steps">{workerSteps.map((step,i) => <li key={step}><span>0{i+1}</span>{step}</li>)}</ol>
+   </>}
+   {chapter===1 && <MissionCard mission={cityMissions[missionIndex]} onSelect={onSelect} />}
+   <div className="city-actions">
+    {chapter===3 ? <><Link className="city-primary" href={authHref("register", "recruteur")}>Publier ma mission <span aria-hidden="true">↗</span></Link><Link className="city-secondary" href={authHref("register", "travailleur")}>Je cherche une mission</Link></> : <><button className="city-primary" onClick={() => goTo(.265)}>{worker ? "Explorer les missions" : "Trouver une mission"}<span aria-hidden="true">↗</span></button><Link className="city-secondary city-recruit-cta" href={authHref("register", "recruteur")}>Publier une mission <span aria-hidden="true">↗</span></Link></>}
+   </div>
+   {chapter===0 && <button className="city-recruit-preview" onClick={() => goTo(.62)}>Découvrir le parcours recruteur <span aria-hidden="true">→</span></button>}
+   {chapter===4 && <Link className="city-all-missions" href="/register">Rejoindre QuickJob ↗</Link>}
+  </div>
+ </div>;
 }

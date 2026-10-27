@@ -12,5 +12,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Identifiants invalides" }, { status: 401 });
   }
   await createSession(user.id);
-  return NextResponse.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+  const verification = user.role === "RECRUTEUR" ? await prisma.recruiterVerification.findUnique({where:{userId:user.id},select:{status:true}}) : null;
+  return NextResponse.json({ id: user.id, name: user.name, email: user.email, role: user.role, recruiterVerification: verification });
 }

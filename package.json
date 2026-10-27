@@ -12,6 +12,8 @@
     "test:home:browser": "node scripts/test-home-browser.mjs",
     "test:roles": "node scripts/test-roles.mjs",
     "test:recruiter": "node scripts/test-recruiter.mjs",
+    "test:recruiter:verification": "node scripts/test-recruiter-verification.mjs",
+    "test:recruiter:verification:browser": "node scripts/test-recruiter-verification-browser.mjs",
     "test:recruiter:browser": "node scripts/test-recruiter-browser.mjs",
     "test:worker": "node scripts/test-worker.mjs",
     "test:worker:browser": "node scripts/test-worker-browser.mjs",

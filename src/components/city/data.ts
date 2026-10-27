@@ -16,13 +16,13 @@ export const cityMissions: CityMission[] = [
  { id: "workspace", title: "Assistant administratif", city: "Tunis", pay: 65, duration: "6 heures", date: "26 octobre 2026", category: "Administratif", anchor: [3.5, 5.8, recruiterLocations.workspaceZ], description: "Accompagner une équipe dans le classement de documents et la préparation de dossiers." },
 ];
 export const chapters = [
- { label: "Découvrir", scene: "Des missions, à votre rythme", title: "Une mission. La bonne rencontre.", description: "Des missions ponctuelles en Tunisie, pour travailler ou trouver du renfort." },
- { label: "Les missions", scene: "Pour les travailleurs", title: "Votre temps. Vos missions.", description: "Explorez quelques exemples et découvrez le type de mission qui vous correspond." },
- { label: "Votre parcours", scene: "Comment ça marche", title: "Un premier pas. Une nouvelle opportunité.", description: "Choisissez une mission, présentez-vous et suivez la réponse du recruteur." },
- { label: "Vous recrutez", scene: "Pour les recruteurs", title: "Le bon renfort, au bon moment.", description: "Publiez votre besoin, recevez les candidatures et choisissez votre équipe." },
- { label: "À vous de jouer", scene: "À vous de jouer", title: "Votre prochaine rencontre commence ici.", description: "Créez votre compte pour trouver une mission ou recruter." },
+ { label: "La ville", scene: "Missions courtes. Rencontres utiles.", title: "Trouvez une mission. Ou trouvez le bon renfort.", description: "QuickJob connecte les travailleurs disponibles et les recruteurs pour des missions de quelques heures ou quelques jours." },
+ { label: "Les missions", scene: "Côté travailleur · Trouver une mission", title: "Des missions qui s’adaptent à votre emploi du temps.", description: "Restaurant, boutique, événement : explorez les missions près de chez vous, puis consultez les détails de celle qui vous correspond." },
+ { label: "Votre parcours", scene: "Côté travailleur · Votre candidature", title: "Votre candidature. Le début d’une rencontre.", description: "Découvrez le parcours d’une candidature : votre dossier rejoint le recruteur, qui vous confirme ensuite sa sélection." },
+ { label: "Vous recrutez", scene: "Côté recruteur · Votre mission, votre équipe", title: "Besoin de personnel ? Publiez votre mission en quelques clics.", description: "Décrivez votre besoin, recevez des candidatures et choisissez les travailleurs qui vous conviennent." },
+ { label: "À vous de jouer", scene: "À vous de choisir votre prochain pas", title: "QuickJob. Les opportunités sont partout.", description: "La visite se termine. Explorez les missions si vous cherchez du travail, ou publiez une mission si vous avez besoin de renfort." },
 ];
-export const workerSteps = ["Choisissez une mission", "Envoyez votre candidature", "Suivez la réponse du recruteur"];
+export const workerSteps = ["Explorer les missions", "Consulter les détails", "Envoyer sa candidature", "Recevoir une confirmation"];
 export const recruiterSteps = ["Publier une mission", "Consulter les candidatures", "Sélectionner", "Organiser"];
 export const demoCandidates = [
  { id: "ines", name: "Inès B.", initials: "IB", skills: "Service · Accueil", rating: "4,9", experience: "Service en salle et accueil lors d’événements. Disponible sur le créneau présenté." },

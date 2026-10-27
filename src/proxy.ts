@@ -5,10 +5,10 @@ export async function proxy(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
   const session = token ? await verifyToken(token) : null;
   const { pathname } = request.nextUrl;
-  if ((pathname.startsWith("/dashboard") || pathname.startsWith("/recruteur")) && !session) {
+  if ((pathname.startsWith("/dashboard") || pathname.startsWith("/recruteur") || pathname.startsWith("/admin")) && !session) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/dashboard/:path*", "/recruteur/:path*"] };
+export const config = { matcher: ["/dashboard/:path*", "/recruteur/:path*", "/admin/:path*"] };
