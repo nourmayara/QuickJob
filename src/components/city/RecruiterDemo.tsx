@@ -1,5 +1,6 @@
 "use client";
 import type { CSSProperties } from "react";
+import QuickJobLogo from "@/components/QuickJobLogo";
 import { demoCandidates, type DemoCandidate } from "./data";
 
 const steps = ["Publication", "Candidatures", "Sélection"];
@@ -13,7 +14,7 @@ export default function RecruiterDemo({ moment, goTo, onProfile, selectedCandida
 }) {
  const step = moment < 2 ? 0 : moment === 2 ? 1 : 2;
  return <aside id="city-recruit-preview" className="city-recruit-demo" aria-label="Démonstration du parcours recruteur">
-  <div className="recruit-demo-heading"><span className="recruit-demo-mark" aria-hidden="true">q↗</span><strong>Votre espace recruteur</strong><small>Démonstration</small></div>
+  <div className="recruit-demo-heading"><QuickJobLogo className="demo-brand-logo" /><strong>Votre espace recruteur</strong><small>Démonstration</small></div>
   <nav className="recruit-stepper" aria-label="Étapes de la démonstration">{steps.map((label, i) => <button key={label} aria-current={step===i ? "step" : undefined} onClick={() => goTo(destinations[i])}><span>{i+1}</span>{label}</button>)}</nav>
   <div className="recruit-panel" key={step}>
    {step===0 && <>

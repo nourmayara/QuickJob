@@ -17,13 +17,20 @@ async function register(suffix,role="RECRUTEUR"){const response=await call("/api
 async function coreSnapshot(){const result={};for(const table of ["User","Session","Mission","Application"]){const rows=await db.$queryRawUnsafe(`SELECT * FROM "${table}" ORDER BY id`);result[table]=createHash("sha256").update(JSON.stringify(rows)).digest("hex");}return result;}
 async function migrationTest(){const sqlite=new DatabaseSync(":memory:");try{
  const directories=(await readdir("prisma/migrations")).filter(name=>/^\d/.test(name)).sort();
- for(const directory of directories.filter(name=>!name.endsWith("recruiter_verification")))sqlite.exec(await readFile(`prisma/migrations/${directory}/migration.sql`,"utf8"));
+ for(const directory of directories.filter(name=>name<"20261026180000_recruiter_verification"))sqlite.exec(await readFile(`prisma/migrations/${directory}/migration.sql`,"utf8"));
  sqlite.exec(`INSERT INTO "User" (id,name,email,password,role,suspended) VALUES (1,'Legacy','legacy@example.invalid','hash','RECRUTEUR',false),(2,'Worker','worker@example.invalid','hash','TRAVAILLEUR',false),(3,'Admin','admin@example.invalid','hash','ADMIN',false),(4,'Suspended','suspended@example.invalid','hash','RECRUTEUR',true);INSERT INTO Mission(id,title,description,recruiterId) VALUES(1,'Existing mission','Existing description',1);INSERT INTO Application(id,missionId,workerId) VALUES(1,1,2);INSERT INTO Session(id,userId,expiresAt) VALUES('legacy',1,'2030-01-01');`);
  const before={};for(const table of ["User","Session","Mission","Application"])before[table]=sqlite.prepare(`SELECT * FROM "${table}" ORDER BY id`).all();
  sqlite.exec(await readFile("prisma/migrations/20261026180000_recruiter_verification/migration.sql","utf8"));
  for(const table of Object.keys(before)){assert.deepEqual(sqlite.prepare(`SELECT * FROM "${table}" ORDER BY id`).all(),before[table]);checks++;}
  const legacy=sqlite.prepare("SELECT * FROM RecruiterVerification ORDER BY userId").all();check(legacy.length===2&&legacy.every(row=>row.status==="APPROUVE"&&row.legacy===1&&row.decidedAt===null&&row.decidedById===null&&row.requestedAt===null),"Migration preserves legacy access without invented decisions");
  check(sqlite.prepare("SELECT suspended FROM User WHERE id=4").get().suspended===1,"Migration preserves suspensions");
+ for(const directory of directories.filter(name=>name>"20261026180000_recruiter_verification"))sqlite.exec(await readFile(`prisma/migrations/${directory}/migration.sql`,"utf8"));
+ for(const table of Object.keys(before)){
+  const columns=Object.keys(before[table][0]);
+  const rows=sqlite.prepare(`SELECT * FROM "${table}" ORDER BY id`).all().map(row=>Object.fromEntries(columns.map(key=>[key,row[key]])));
+  assert.deepEqual(rows,before[table].map(row=>({...row})),`${table}: original values preserved by later migrations`);checks++;
+ }
+ assert.deepEqual(sqlite.prepare("SELECT * FROM RecruiterVerification ORDER BY userId").all(),legacy,"Later migrations never approve or change existing recruiter decisions");checks++;
 }finally{sqlite.close();}}
 const missionInput={title:"Mission après approbation",description:"Accueil des visiteurs et préparation de la salle.",category:"Événementiel",city:"Tunis",address:"10 avenue de la Liberté",date:"2030-12-15",startTime:"09:00",endTime:"17:00",pay:80,capacity:2,skills:"Accueil",experience:"",status:"PUBLISHED"};
 let before;
@@ -81,6 +88,7 @@ try{
  await writeFile(".artifacts/recruiter-verification-api.json",JSON.stringify({checks},null,2));
 }finally{
  const ids=(await db.user.findMany({where:{email:{startsWith:prefix}},select:{id:true}})).map(user=>user.id);
+ await db.adminAction.deleteMany({where:{adminId:{in:ids}}});
  await db.application.deleteMany({where:{OR:[{workerId:{in:ids}},{mission:{recruiterId:{in:ids}}}]}});await db.mission.deleteMany({where:{recruiterId:{in:ids}}});await db.user.deleteMany({where:{id:{in:ids}}});
  if(before){assert.deepEqual(await coreSnapshot(),before,"Real preexisting data and sessions preserved after fixture cleanup");console.log("Données et sessions préexistantes inchangées ; comptes temporaires supprimés.");}
  await db.$disconnect();

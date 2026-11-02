@@ -1,0 +1,11 @@
+import Link from "next/link";
+import { requirePageRole } from "@/lib/authorization";
+import { reportsFilter, reportStatuses } from "@/lib/admin-validation";
+import { listReports } from "@/lib/admin-service";
+import { PageHeading, Panel, formatDate } from "@/components/recruiter/ui";
+import AdminPagination from "@/components/admin/AdminPagination";
+export default async function ReportsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  await requirePageRole(["ADMIN"]); const parsed = reportsFilter.safeParse(await searchParams), input = parsed.success ? parsed.data : reportsFilter.parse({});
+  const { items, total } = await listReports(input);
+  return <><PageHeading title="Signalements" description="Examinez les problèmes signalés et consignez vos décisions." />{!parsed.success && <p role="alert" className="rq-error">Filtres invalides.</p>}<form method="GET" className="rq-filters" key={JSON.stringify(input)}><label className="rq-field">Recherche<input name="q" defaultValue={input.q} maxLength={160} /></label><label className="rq-field">Statut<select name="status" defaultValue={input.status}><option value="">Tous</option>{reportStatuses.map(s => <option key={s}>{s}</option>)}</select></label><button className="rq-button rq-primary">Filtrer</button><Link className="rq-button" href="/admin/signalements">Réinitialiser</Link></form><Panel title={`${total} signalement(s)`}><div className="qa-table"><table><thead><tr>{["Type", "Auteur", "Cible", "Date", "Statut", "Action"].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead><tbody>{items.map(r => <tr key={r.id}><td>{r.kind}</td><td>{r.author ? `${r.author.firstName} ${r.author.name}` : "Compte supprimé"}</td><td>{r.mission?.title || (r.targetUser ? `${r.targetUser.firstName} ${r.targetUser.name}` : "Cible supprimée")}</td><td>{formatDate(r.createdAt)}</td><td><span className={`qa-badge ${r.status}`}>{r.status}</span></td><td><Link className="rq-link" href={`/admin/signalements/${r.id}`}>Consulter et traiter</Link></td></tr>)}</tbody></table>{!items.length && <p className="qa-empty">Aucun signalement correspondant.</p>}</div><AdminPagination page={input.page} total={total} query={{ q: input.q, status: input.status }} /></Panel></>;
+}

@@ -1,0 +1,28 @@
+@font-face{font-family:"QuickJob Sans";src:url('/fonts/sans.woff2') format('woff2');font-style:normal;font-weight:400 700;font-display:swap}
+:root{
+ --color-primary:#1B3B65;--color-primary-hover:#244f7f;--color-accent:#F2DC70;--color-accent-soft:#fff4b8;
+ --color-pastel-blue:#BBD0DE;--color-sky:#527DA1;--color-surface:#F7FBFF;--color-surface-soft:#DDEAF2;
+ --color-background:#BBD0DE;--color-text:#142f52;--color-text-body:#294d6d;--color-text-muted:#526d84;
+ --color-border:#d4e0e9;--color-focus:#547FA5;--color-success:#176d4a;--color-success-soft:#edf8f1;
+ --color-danger:#a33345;--color-danger-soft:#fff1f2;--color-warning:#745c13;--color-warning-soft:#fff8dd;
+ --font-body:"QuickJob Sans",Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+ --font-size-body:14px;--font-size-small:12px;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;--space-6:32px;--space-7:48px;--space-8:64px;
+ --color-on-dark:#F7FBFF;--color-on-yellow:#142f52;--color-glass:rgba(247,251,255,.62);--color-glass-dark:rgba(19,46,79,.74);
+ --gradient-aurora:radial-gradient(circle at 14% 8%,rgba(242,220,112,.76),transparent 24%),radial-gradient(circle at 88% 22%,rgba(187,208,222,.88),transparent 31%),linear-gradient(135deg,#1B3B65 0%,#315f86 48%,#527DA1 72%,#BBD0DE 100%);
+ --gradient-sky:linear-gradient(135deg,#527DA1 0%,#7fa4bd 54%,#BBD0DE 100%);--gradient-yellow:linear-gradient(135deg,#F2DC70 0%,#f8eaa4 100%);--gradient-deep:linear-gradient(145deg,#102b4c 0%,#1B3B65 52%,#315f86 100%);
+ --radius-card:26px;--radius-button:15px;--radius-input:13px;--radius-pill:999px;
+ --shadow-clay:12px 18px 42px rgba(19,46,79,.18),inset 2px 2px 0 rgba(255,255,255,.72),inset -2px -2px 0 rgba(27,59,101,.08);
+ --shadow-raised:7px 10px 22px rgba(18,43,74,.28),inset 0 2px 0 rgba(255,255,255,.26),inset 0 -2px 0 rgba(0,0,0,.12);
+ --shadow-inset:inset 2px 3px 6px rgba(25,55,96,.055),inset -2px -2px 4px rgba(255,255,255,.95);
+ --shadow-dialog:0 30px 90px rgba(12,31,56,.38),inset 0 2px 0 rgba(255,255,255,.75);--blur-glass:blur(22px) saturate(135%);
+ --duration-micro:180ms;--duration-page:320ms;--ease-out:cubic-bezier(.2,.75,.25,1);
+ --logo-filter:none;
+ /* Shared by authentication and every workspace; values originate in Login. */
+ --qj-deep:#173B85;--qj-royal:#2863E5;--qj-sky:#70A8E8;--qj-pastel:#A9CBF5;--qj-ice:#BDD2E2;--qj-cloud:#DDE9FA;--qj-white:#F3F7FF;--qj-warm:#FFF2C9;
+ --qj-aurora:radial-gradient(ellipse at 108% 2%,#fff5d4 0%,#ffedc8e6 22%,#fff0d000 53%),radial-gradient(ellipse at 38% -8%,#e5dcfacc 0%,#d6d9f580 24%,#d6d9f500 52%),radial-gradient(ellipse at 48% 115%,#78baf6c9 0%,#8dc4f66b 35%,#8dc4f600 68%),linear-gradient(125deg,#9ebfeb 0%,#a8caf3 36%,#a3cdf5 68%,#d5e1f8 87%,#ffe9bf 100%);
+ --qj-glass:linear-gradient(140deg,#ffffffde,#f5f8ffce 62%,#fffdf6e6);--qj-glass-border:#ffffffad;--qj-glass-shadow:0 18px 44px #477dc324,inset 0 2px 2px #ffffffd9;
+ --qj-primary:linear-gradient(180deg,#3478F6,#2455D9);--qj-primary-hover:linear-gradient(180deg,#286bec,#194bd1);--qj-primary-shadow:inset 0 2px 2px #ffffff52,0 5px 10px #2c65d525;
+ --qj-input-bg:#ffffff9e;--qj-input-border:#e1e6f2;--qj-input-shadow:inset 0 2px 4px #5776ac06,0 1px 2px #fff;
+ --qj-radius:28px;--qj-control-radius:13px;--qj-ink:#122653;--qj-muted:#526788;
+ color-scheme:light;
+}

@@ -1,4 +1,5 @@
 import prisma from "./prisma";
+import { cache } from "react";
 import { createHash, randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { COOKIE_NAME, MAX_AGE, signToken, verifyToken } from "./token";
@@ -16,7 +17,7 @@ export async function createSession(userId: number) {
   });
 }
 
-export async function getSession() {
+export const getSession = cache(async () => {
   const token = (await cookies()).get(COOKIE_NAME)?.value;
   if (!token) return null;
   const payload = await verifyToken(token);
@@ -28,7 +29,7 @@ export async function getSession() {
     ? await prisma.session.findUnique({where:{id}})
     : await prisma.session.upsert({where:{id}, update:{}, create:{id,userId:payload.userId,expiresAt:new Date(payload.exp*1000)}});
   return session && session.userId === payload.userId && session.expiresAt > new Date() ? {userId:session.userId} : null;
-}
+});
 
 export async function destroySession() {
   const token = (await cookies()).get(COOKIE_NAME)?.value;

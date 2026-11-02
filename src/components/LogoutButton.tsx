@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Icon from "@/components/recruiter/Icon";
 import { useRouter } from "next/navigation";
 export default function LogoutButton() {
   const router = useRouter();
@@ -14,5 +15,5 @@ export default function LogoutButton() {
     } catch { setError("Déconnexion impossible. Réessayez."); }
     finally { setLoading(false); }
   }
-  return <div><button className="button" onClick={logout} disabled={loading}>{loading ? "Patientez…" : "Se déconnecter"}</button>{error && <p role="alert">{error}</p>}</div>;
+  return <div><button className="button" onClick={logout} disabled={loading}><Icon name="logout" size={17} />{loading ? "Patientez…" : "Se déconnecter"}</button>{error && <p role="alert">{error}</p>}</div>;
 }

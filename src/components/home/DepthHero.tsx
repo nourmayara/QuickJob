@@ -1,8 +1,10 @@
 "use client";
 import Image from "next/image";
+import SoftIcon from "@/components/SoftIcon";
+import Icon, { type IconName } from "@/components/recruiter/Icon";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
-type Preview = { title: string; city: string; pay: number; duration: string; color: string; icon: string };
+type Preview = { title: string; city: string; pay: number; duration: string; color: string; icon: IconName };
 export default function DepthHero({ missions, onSelect }: { missions: Preview[]; onSelect: (index: number) => void }) {
  const section = useRef<HTMLElement>(null);
  useEffect(() => {
@@ -46,8 +48,8 @@ export default function DepthHero({ missions, onSelect }: { missions: Preview[];
    <div className="depth-headline"><p>UNE RENCONTRE PEUT TOUT CHANGER.</p><h1>Votre prochaine<br /><em>opportunité</em><br />commence ici<span>.</span></h1></div>
    <div className="depth-chapter" aria-hidden="true"><span>LES POSSIBILITÉS PRENNENT VIE.</span><p>Le bon talent.<br /><em>Au bon moment.</em></p></div>
    <div className="depth-space" aria-hidden="true"><div className="depth-floor" /><div className="portal-rig"><div className="portal-body">{Array.from({ length: 22 }, (_, i) => <div className="portal-ring" key={i} style={{ transform: `translateZ(${-i * 7}px)`, opacity: 1 - i * .026 }} />)}<div className="portal-face"><Image src="/images/people.jpg" alt="" fill priority sizes="(max-width: 600px) 80vw, 45vw" /><span className="portal-tint" /><span className="portal-word">q<span>↗</span></span><span className="portal-caption">OPEN TO POSSIBILITIES.</span></div></div><div className="portal-orbit orbit-a" /><div className="portal-orbit orbit-b" /></div><div className="depth-sphere sphere-one" /><div className="depth-sphere sphere-two" /><div className="depth-spark">✳</div></div>
-   <div className="depth-missions">{missions.map((m,i) => <button key={m.title} className={`depth-mission depth-mission-${i}`} onClick={() => onSelect(i)}><span className={`job-symbol ${m.color}`} aria-hidden="true">{m.icon}</span><span><small>MISSION / 0{i+1}</small><strong>{m.title}</strong><span className="depth-city">{m.city} · {m.duration}</span></span><b>{m.pay}<small> DT</small></b><span className="depth-card-arrow" aria-hidden="true">↗</span></button>)}</div>
-   <div className="depth-copy"><p>Trouvez des missions ponctuelles près de chez vous ou recrutez les bons profils en quelques clics.</p><div><a className="qj-btn white" href="#missions">Explorer les missions <span aria-hidden="true">↗</span></a><Link className="depth-publish" href="/register">Publier une mission ↗</Link></div></div>
+   <div className="depth-missions">{missions.map((m,i) => <button key={m.title} className={`depth-mission depth-mission-${i}`} onClick={() => onSelect(i)}><span className={`job-symbol ${m.color}`} aria-hidden="true">{<SoftIcon name={m.icon} size={26} />}</span><span><small>MISSION / 0{i+1}</small><strong>{m.title}</strong><span className="depth-city">{m.city} · {m.duration}</span></span><b>{m.pay}<small> DT</small></b><span className="depth-card-arrow" aria-hidden="true"><Icon name="arrow" size={20} /></span></button>)}</div>
+   <div className="depth-copy"><p>Trouvez des missions ponctuelles près de chez vous ou recrutez les bons profils en quelques clics.</p><div><a className="qj-btn white" href="#missions">Explorer les missions <span aria-hidden="true"><Icon name="arrow" size={20} /></span></a><Link className="depth-publish" href="/register">Publier une mission ↗</Link></div></div>
    <div className="depth-bottom"><a href="#introduction"><span>↓</span> SCROLLEZ. CHANGEZ DE PERSPECTIVE.</a><div className="depth-progress" aria-hidden="true"><i /></div><span>EXEMPLES DE MISSIONS FICTIVES</span></div>
   </div>
  </section>;

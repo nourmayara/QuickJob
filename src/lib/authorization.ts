@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { NextResponse } from "next/server";
 import { redirect } from "next/navigation";
 import prisma from "./prisma";
@@ -8,9 +9,12 @@ import { recruiterApprovalPath } from "./recruiter-approval";
 export const ROLES = ["TRAVAILLEUR", "RECRUTEUR", "ADMIN"] as const;
 export type Role = typeof ROLES[number];
 export const publicUserSelect = { id: true, name: true, firstName: true, email: true, role: true, createdAt: true, suspended: true, recruiterVerification: { select: { status: true } } } as const;
-export async function requireRole(roles: readonly Role[] = ROLES) {
+const getCurrentUser = cache(async () => {
   const session = await getSession();
-  const user = session ? await prisma.user.findUnique({where:{id:session.userId},select:publicUserSelect}) : null;
+  return session ? prisma.user.findUnique({where:{id:session.userId},select:publicUserSelect}) : null;
+});
+export async function requireRole(roles: readonly Role[] = ROLES) {
+  const user = await getCurrentUser();
   if (!user || user.suspended) return { user: null, response: NextResponse.json({error:"Non authentifié"},{status:401}) };
   if (!roles.includes(user.role as Role)) return { user: null, response: NextResponse.json({error:"Accès interdit"},{status:403}) };
   return { user, response: null };

@@ -1,0 +1,12 @@
+import Link from "next/link";
+import { requirePageRole } from "@/lib/authorization";
+import { usersFilter } from "@/lib/admin-validation";
+import { listAdminUsers } from "@/lib/admin-service";
+import { PageHeading, Panel, formatDate } from "@/components/recruiter/ui";
+import AdminPagination from "@/components/admin/AdminPagination";
+export default async function UsersPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  await requirePageRole(["ADMIN"]);
+  const parsed = usersFilter.safeParse(await searchParams), input = parsed.success ? parsed.data : usersFilter.parse({});
+  const { items, total } = await listAdminUsers(input);
+  return <><PageHeading title="Utilisateurs" description="Consultez les comptes, leur rôle, leur état et la vérification des recruteurs." />{!parsed.success && <p role="alert" className="rq-error">Filtres invalides.</p>}<form method="GET" className="rq-filters" key={JSON.stringify(input)}><label className="rq-field">Recherche<input name="q" defaultValue={input.q} maxLength={160} placeholder="Nom, email ou organisation" /></label><label className="rq-field">Rôle<select name="role" defaultValue={input.role}><option value="">Tous</option>{["TRAVAILLEUR", "RECRUTEUR", "ADMIN"].map(r => <option key={r}>{r}</option>)}</select></label><label className="rq-field">Compte<select name="status" defaultValue={input.status}><option value="">Tous</option><option value="ACTIF">Actif</option><option value="SUSPENDU">Suspendu</option></select></label><button className="rq-button rq-primary">Rechercher</button><Link className="rq-button" href="/admin/utilisateurs">Réinitialiser</Link></form><Panel title={`${total} utilisateur(s)`}><div className="qa-table"><table><thead><tr>{["Identité", "Email", "Rôle", "Compte", "Vérification", "Inscription", "Action"].map(h => <th scope="col" key={h}>{h}</th>)}</tr></thead><tbody>{items.map(u => <tr key={u.id}><td>{u.firstName} {u.name}<small>{u.companyName}</small></td><td>{u.email}</td><td>{u.role}</td><td>{u.suspended ? "Suspendu" : "Actif"}</td><td>{u.role === "RECRUTEUR" ? u.recruiterVerification?.status || "EN_ATTENTE" : "—"}</td><td>{formatDate(u.createdAt)}</td><td><Link className="rq-link" href={`/admin/utilisateurs/${u.id}`}>Consulter</Link></td></tr>)}</tbody></table>{!items.length && <p className="qa-empty">Aucun utilisateur correspondant.</p>}</div><AdminPagination page={input.page} total={total} query={{ q: input.q, role: input.role, status: input.status }} /></Panel></>;
+}

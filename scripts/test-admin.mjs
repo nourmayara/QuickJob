@@ -1,0 +1,176 @@
+import assert from "node:assert/strict";
+import { PrismaClient } from "@prisma/client";
+import env from "@next/env";
+import { openWorkerBrowser } from "./worker-browser-session.mjs";
+env.loadEnvConfig(process.cwd());
+const db = new PrismaClient(), base = process.env.TEST_BASE_URL || "http://localhost:3100", prefix = `admin-${Date.now()}-`, users = [], categories = [];
+let checks = 0, browser;
+const check = (v, label) => { assert.ok(v, label); checks++; };
+async function call(path, code, actor, method = "GET", body) {
+  const response = await fetch(base + path, { method, redirect: "manual", headers: { ...(actor ? { Cookie: actor.cookie } : {}), "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const text = await response.clone().text();
+  const streamed = code === 307 && response.status === 200 && (text.includes("NEXT_REDIRECT") || text.includes("__next-page-redirect"));
+  check(response.status === code || streamed, `${method} ${path}: ${response.status}, expected ${code}: ${text.slice(0, 250)}`);
+  check(!/"(?:password|sessions|token)"\s*:/.test(text), "No secrets");
+  return response;
+}
+async function account(label, role) {
+  const response = await call("/api/auth/register", 201, null, "POST", { name: "Recette", firstName: label, email: `${prefix}${label}@example.invalid`, phone: "+216 12345678", password: "test-password123", confirmPassword: "test-password123", acceptTerms: true, role, ...(role === "RECRUTEUR" ? { recruiterType: "INDIVIDUAL" } : {}) });
+  const actor = { ...await response.json(), cookie: response.headers.get("set-cookie").split(";")[0], email: `${prefix}${label}@example.invalid` }; users.push(actor); return actor;
+}
+async function login(actor, code = 200) {
+  const response = await call("/api/auth/login", code, null, "POST", { email: actor.email, password: "test-password123" });
+  if (code === 200) actor.cookie = response.headers.get("set-cookie").split(";")[0];
+}
+const mission = { title: `${prefix}Mission`, description: "Accueil des visiteurs pendant une journée.", category: "Services", city: "Tunis", address: "10 rue des Fleurs", date: "2039-12-15", startTime: "09:00", endTime: "12:00", pay: 90, capacity: 3, skills: "Accueil", status: "PUBLISHED" };
+const createMission = async (actor, extra = {}) => (await call("/api/missions", 201, actor, "POST", { ...mission, ...extra })).json();
+const approve = (admin, actor) => call(`/api/admin/recruteurs/${actor.id}`, 200, admin, "PATCH", { status: "APPROUVE" });
+async function categoryUpdate(admin, current, changes, code = 200) {
+  const response = await call(`/api/admin/categories/${current.id}`, code, admin, "PATCH", { name: current.name, active: current.active, ...changes, expectedName: current.name, expectedActive: current.active });
+  return code === 200 ? response.json() : current;
+}
+try {
+  const admin = await account("Admin", "TRAVAILLEUR"), admin2 = await account("Admin2", "TRAVAILLEUR"), w = await account("Amira", "TRAVAILLEUR"), w2 = await account("Sami", "TRAVAILLEUR");
+  await db.user.updateMany({ where: { id: { in: [admin.id, admin2.id] } }, data: { role: "ADMIN" } });
+  const r = await account("Recruiter", "RECRUTEUR"), refused = await account("Refused", "RECRUTEUR"), raced = await account("Race", "RECRUTEUR"), browserRecruiter = await account("BrowserRecruiter", "RECRUTEUR");
+  check(r.recruiterVerification.status === "EN_ATTENTE", "New recruiter pending");
+  await call("/recruteur/en-attente", 200, r); await call("/recruteur/dashboard", 307, r); await call("/api/missions", 403, r, "POST", mission);
+  for (const path of ["/api/admin/users", "/api/admin/missions", "/api/admin/categories", "/api/admin/signalements", "/api/admin/recruteurs"]) { await call(path, 401); await call(path, 403, w); await call(path, 403, r); }
+  for (const path of ["/admin/utilisateurs", "/admin/missions", "/admin/signalements", "/admin/categories"]) await call(path, 307, w);
+  const list = await (await call("/api/admin/recruteurs?status=EN_ATTENTE", 200, admin)).json();
+  check(list.items.some(x => x.userId === r.id), "Admin sees pending request");
+  const detail = await (await call(`/api/admin/recruteurs/${r.id}`, 200, admin)).json();
+  const storedContact = await db.user.findUniqueOrThrow({ where: { id: r.id }, select: { email: true, phone: true } });
+  check(detail.user.email === storedContact.email && detail.user.phone === storedContact.phone, "Verification contact details");
+  await call(`/api/admin/recruteurs/${r.id}`, 403, w, "PATCH", { status: "APPROUVE" });
+  await approve(admin, r);
+  const decision = await db.recruiterVerification.findUniqueOrThrow({ where: { userId: r.id } });
+  check(decision.status === "APPROUVE" && decision.decidedById === admin.id && decision.decidedAt !== null, "Approval administrator and date persist");
+  check(await db.notification.count({ where: { userId: r.id, verificationId: r.id } }) === 1, "Approval notification created once");
+  await call(`/api/admin/recruteurs/${r.id}`, 409, admin, "PATCH", { status: "REFUSE", reason: "Trop tard pour décider" });
+  await call("/api/recruteur/verification", 200, r); await call("/recruteur/dashboard", 200, r); await login(r);
+  const m = await createMission(r);
+  await call(`/api/admin/recruteurs/${refused.id}`, 400, admin, "PATCH", { status: "REFUSE", reason: " " });
+  await call(`/api/admin/recruteurs/${refused.id}`, 200, admin, "PATCH", { status: "REFUSE", reason: "Informations professionnelles insuffisantes" });
+  const refusalHtml = await (await call("/recruteur/refuse", 200, refused)).text();
+  check(refusalHtml.includes("Informations professionnelles insuffisantes"), "Refusal reason visible");
+  await login(refused); await call("/recruteur/dashboard", 307, refused); await call("/api/missions", 403, refused, "POST", mission);
+  const races = await Promise.all([[admin, "APPROUVE"], [admin2, "REFUSE"]].map(([actor, status]) => fetch(`${base}/api/admin/recruteurs/${raced.id}`, { method: "PATCH", headers: { Cookie: actor.cookie, "Content-Type": "application/json" }, body: JSON.stringify({ status, reason: "Décision concurrente de recette" }) })));
+  check(races.filter(x => x.status === 200).length === 1 && races.filter(x => x.status === 409).length === 1, "Concurrent verification decision blocked");
+  check(await db.notification.count({ where: { verificationId: raced.id } }) === 1, "Single verification notification after race");
+  await call(`/api/admin/users/${admin.id}`, 403, admin, "PATCH", { suspended: true });
+  await call(`/api/admin/users/${w.id}`, 403, r, "PATCH", { suspended: true });
+  await call(`/api/admin/users/${w.id}`, 200, admin, "PATCH", { suspended: true });
+  await call("/api/travailleur/profil", 401, w); await call("/api/signalements", 401, w); await login(w, 401);
+  await call(`/api/admin/users/${w.id}`, 200, admin, "PATCH", { suspended: false });
+  await call("/api/travailleur/profil", 401, w); await login(w); await call("/api/travailleur/profil", 200, w);
+  await call(`/api/admin/users/${r.id}`, 200, admin, "PATCH", { suspended: true });
+  await call("/api/missions", 401, r); await call(`/api/admin/users/${r.id}`, 200, admin, "PATCH", { suspended: false }); await login(r);
+  check((await db.recruiterVerification.findUniqueOrThrow({ where: { userId: r.id } })).status === "APPROUVE", "Suspension preserves recruiter verification");
+  const filteredUsers = await (await call(`/api/admin/users?q=${prefix}&role=RECRUTEUR&status=ACTIF`, 200, admin)).json();
+  check(filteredUsers.length >= 4 && filteredUsers.every(u => u.role === "RECRUTEUR" && !u.suspended), "User search and filters");
+  await call(`/api/admin/users/${w.id}`, 200, admin); await call("/api/admin/users?role=ROOT", 400, admin);
+  const app = await (await call(`/api/missions/${m.id}/applications`, 201, w, "POST", {})).json();
+  const reportBody = { kind: "MISSION", missionId: m.id, reason: "Conditions de mission suspectes à vérifier" };
+  await call("/api/signalements", 401, null, "POST", reportBody); await call("/api/signalements", 403, refused, "POST", reportBody);
+  await call("/api/signalements", 400, w, "POST", { ...reportBody, authorId: admin.id });
+  await call("/api/signalements", 400, w, "POST", { ...reportBody, reason: "court" });
+  const report = await (await call("/api/signalements", 201, w, "POST", reportBody)).json();
+  await call("/api/signalements", 201, w, "POST", { kind: "PROFILE", targetUserId: r.id, reason: "Informations du profil incohérentes" });
+  await call("/api/signalements", 201, w, "POST", { kind: "BEHAVIOR", targetUserId: r.id, missionId: m.id, reason: "Comportement inapproprié dans cette mission" });
+  await call("/api/signalements", 201, r, "POST", { kind: "BEHAVIOR", targetUserId: w.id, missionId: m.id, reason: "Échange à examiner par la modération" });
+  await call("/api/signalements", 404, r, "POST", { kind: "PROFILE", targetUserId: w2.id, reason: "Profil sans relation avec le recruteur" });
+  const ownReports = await (await call("/api/signalements", 200, w)).json(); check(ownReports.length === 3, "Users see only their reports");
+  await call(`/api/admin/signalements/${report.id}`, 403, w);
+  await call(`/api/admin/signalements/${report.id}`, 200, admin, "PATCH", { status: "EN_COURS", expectedStatus: "NOUVEAU", resolution: "Examen des faits signalés" });
+  const reportRace = await Promise.all([[admin, "RESOLU"], [admin2, "REJETE"]].map(([actor, status]) => fetch(`${base}/api/admin/signalements/${report.id}`, { method: "PATCH", headers: { Cookie: actor.cookie, "Content-Type": "application/json" }, body: JSON.stringify({ status, expectedStatus: "EN_COURS", resolution: "Décision finale après examen du dossier" }) })));
+  check(reportRace.filter(x => x.status === 200).length === 1 && reportRace.filter(x => x.status === 409).length === 1, "Concurrent moderation decisions blocked");
+  const decidedReport = await db.report.findUniqueOrThrow({ where: { id: report.id } });
+  check(decidedReport.moderatorId !== null && decidedReport.decidedAt !== null && decidedReport.resolution.length > 10, "Report decision persisted with actor and date");
+  await call(`/api/admin/signalements/${report.id}`, 409, admin, "PATCH", { status: "RESOLU", expectedStatus: decidedReport.status, resolution: "Pas de nouvelle décision possible" });
+  const missions = await (await call(`/api/admin/missions?q=${prefix}&status=PUBLISHED`, 200, admin)).json(); check(missions.some(x => x.id === m.id), "Admin mission search");
+  await call(`/api/admin/missions/${m.id}`, 403, r, "PATCH", { action: "MODERATE" });
+  await call(`/api/admin/missions/${m.id}`, 200, admin, "PATCH", { action: "MODERATE", reason: "Conditions de mission non conformes" });
+  await call(`/api/admin/missions/${m.id}`, 409, admin, "PATCH", { action: "MODERATE" });
+  check((await db.application.findUniqueOrThrow({ where: { id: app.id } })).status === "PENDING", "Moderation preserves applications");
+  check(!(await (await call(`/api/missions?q=${prefix}`, 200, w)).json()).some(x => x.id === m.id), "Masked mission removed from search");
+  await call(`/api/missions/${m.id}`, 404, w); await call(`/api/missions/${m.id}`, 404, r, "PATCH", { title: "Contournement" });
+  const cat = await (await call("/api/admin/categories", 201, admin, "POST", { name: `${prefix}Événement spécial`, active: true })).json(); categories.push(cat.id);
+  await call("/api/admin/categories", 409, admin, "POST", { name: cat.name.toUpperCase(), active: true });
+  await call("/api/admin/categories", 409, admin, "POST", { name: cat.name.normalize("NFD").replace(/\p{M}/gu, ""), active: true });
+  await call("/api/admin/categories", 403, r, "POST", { name: "Interdit", active: true });
+  const categoryMission = await createMission(r, { category: cat.name, title: `${prefix}Catégorie` });
+  const renamed = await categoryUpdate(admin, cat, { name: `${prefix}Nouvelle catégorie` });
+  check((await db.mission.findUniqueOrThrow({ where: { id: categoryMission.id } })).category === renamed.name, "Category rename preserves mission association");
+  const draft = await (await call("/api/missions", 201, r, "POST", { title: `${prefix}Brouillon`, description: mission.description, category: renamed.name, status: "DRAFT" })).json();
+  await categoryUpdate(admin, renamed, { active: false });
+  await categoryUpdate(admin2, renamed, { name: "Modification périmée" }, 409);
+  check(!(await (await call("/api/categories", 200, r)).json()).some(c => c.id === cat.id), "Disabled category absent from new mission choices");
+  await call("/api/missions", 400, r, "POST", { ...mission, category: renamed.name });
+  await call(`/api/missions/${draft.id}`, 400, r, "PATCH", { ...mission, category: renamed.name });
+  await call(`/api/missions/${categoryMission.id}`, 200, r, "PATCH", { description: "Modification sans changer la catégorie historique" });
+  await call(`/api/admin/categories/${cat.id}`, 405, admin, "DELETE");
+  const stats = await (await call("/api/admin/statistics", 200, admin)).json();
+  check(stats.reports.available && stats.reports.total === await db.report.count(), "Dashboard report count is real");
+  check(stats.pendingRecruiters === await db.recruiterVerification.count({ where: { status: "EN_ATTENTE", user: { role: "RECRUTEUR" } } }), "Pending recruiter count matches DB");
+  check(await db.adminAction.count({ where: { targetType: "MISSION", targetId: m.id, adminId: admin.id } }) === 1, "Mission decision audit recorded exactly once");
+  if (process.env.TEST_BROWSER !== "0") {
+    browser = await openWorkerBrowser(base); await browser.cookie(admin.cookie);
+    await browser.go(`/admin/recruteurs/${browserRecruiter.id}`);
+    await browser.evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent==='Approuver').click()");
+    await browser.until("document.body.textContent.includes('Approuver ce recruteur ?')");
+    await browser.evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent==='Confirmer la décision').click()");
+    await browser.until("document.body.textContent.includes('Approuvé') && ![...document.querySelectorAll('button')].some(b=>b.textContent==='Approuver')");
+    check((await db.recruiterVerification.findUniqueOrThrow({ where: { userId: browserRecruiter.id } })).status === "APPROUVE", "Browser approval persists");
+    await browser.go(`/admin/utilisateurs/${w2.id}`);
+    await browser.evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent==='Suspendre le compte').click()"); await browser.until("!!document.querySelector('[role=dialog]')");
+    await browser.evaluate("[...document.querySelectorAll('[role=dialog] button')].find(b=>b.textContent==='Confirmer').click()"); await browser.until("!document.querySelector('[role=dialog]') && [...document.querySelectorAll('button')].some(b=>b.textContent==='Réactiver le compte')");
+    await browser.evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent==='Réactiver le compte').click()"); await browser.until("!!document.querySelector('[role=dialog]')");
+    await browser.evaluate("[...document.querySelectorAll('[role=dialog] button')].find(b=>b.textContent==='Confirmer').click()"); await browser.until("!document.querySelector('[role=dialog]') && [...document.querySelectorAll('button')].some(b=>b.textContent==='Suspendre le compte')");
+    check(!(await db.user.findUniqueOrThrow({ where: { id: w2.id } })).suspended, "Browser suspension and reactivation");
+    await browser.go(`/admin/categories?q=${prefix}`);
+    const browserCategoryName = `${prefix}Navigateur`;
+    await browser.evaluate(`document.querySelector('.rq-form [name=name]').value=${JSON.stringify(browserCategoryName)}; document.querySelector('.rq-form .rq-form-actions button').click()`); await browser.until("!!document.querySelector('.rq-success')");
+    const bc = await db.category.findUniqueOrThrow({ where: { key: browserCategoryName.toLowerCase() } }); categories.push(bc.id);
+    await browser.until(`document.querySelector('.qa-table').textContent.includes(${JSON.stringify(browserCategoryName)})`);
+    await browser.evaluate(`[...document.querySelectorAll('tbody tr')].find(tr=>tr.textContent.includes(${JSON.stringify(browserCategoryName)})).querySelector('button').click()`);
+    await browser.until(`document.querySelector('.rq-form [name=name]').value===${JSON.stringify(browserCategoryName)}`);
+    await browser.evaluate("document.querySelector('.rq-form [name=active]').click(); document.querySelector('.rq-form .rq-form-actions button').click()"); await browser.until("!!document.querySelector('.rq-success')");
+    check(!(await db.category.findUniqueOrThrow({ where: { id: bc.id } })).active, "Browser category deactivation");
+    const reportMission = await createMission(r, { title: `${prefix}Signalement navigateur`, date: "2039-12-18" });
+    await browser.cookie(w.cookie); await browser.go(`/dashboard/travailleur/missions/${reportMission.id}`);
+    await browser.evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent==='Signaler un problème').click()");
+    await browser.until("!!document.querySelector('[name=reason]')");
+    const browserReason = `${prefix}Problème signalé par navigateur`;
+    await browser.evaluate(`document.querySelector('[name=reason]').value=${JSON.stringify(browserReason)}; [...document.querySelectorAll('button')].find(b=>b.textContent==='Envoyer le signalement').click()`);
+    await browser.until("document.body.textContent.includes('enregistré.')");
+    const br = await db.report.findFirstOrThrow({ where: { authorId: w.id, reason: browserReason } });
+    await browser.cookie(admin.cookie); await browser.go(`/admin/signalements/${br.id}`);
+    await browser.evaluate("document.querySelector('[name=status]').value='RESOLU'; document.querySelector('[name=reason]').value='Vérification et résolution du problème signalé'; document.querySelector('.rq-form .rq-form-actions button').click()");
+    await browser.until("document.body.textContent.includes('Confirmer la décision')");
+    await browser.evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent==='Confirmer la décision').click()");
+    await browser.until("document.body.textContent.includes('Dernière décision') && !document.querySelector('.rq-form')");
+    check((await db.report.findUniqueOrThrow({ where: { id: br.id } })).status === "RESOLU", "Browser report resolved");
+    await browser.go(`/admin/missions/${reportMission.id}`);
+    await browser.evaluate("document.querySelector('[name=reason]').value='Mission non conforme après examen administratif'; document.querySelector('.rq-form .rq-form-actions button').click()"); await browser.until("document.body.textContent.includes('Confirmer la décision')");
+    await browser.evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent==='Confirmer la décision').click()"); await browser.until("!!document.querySelector('.rq-status-moderated')");
+    check((await db.mission.findUniqueOrThrow({ where: { id: reportMission.id } })).status === "MODERATED", "Browser mission masking confirmed");
+    for (const path of ["/admin/utilisateurs", "/admin/recruteurs", "/admin/missions", "/admin/signalements", "/admin/categories"]) {
+      await browser.go(path); await browser.cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+      await browser.until("document.querySelector('.rq-sidebar').getBoundingClientRect().right <= 1");
+      check(await browser.evaluate("document.documentElement.scrollWidth <= innerWidth"), `Responsive ${path}`);
+    }
+    check(browser.errors.length === 0, "No browser exceptions");
+  }
+  console.log(`${checks} contrôles administration réussis : vérification, restrictions, utilisateurs, missions, signalements, catégories, concurrence${browser ? ', navigateur et responsive' : ''}.`);
+} finally {
+  if (browser) await browser.close();
+  const ids = users.map(u => u.id);
+  await db.adminAction.deleteMany({ where: { adminId: { in: ids } } });
+  await db.report.deleteMany({ where: { authorId: { in: ids } } });
+  await db.application.deleteMany({ where: { OR: [{ workerId: { in: ids } }, { mission: { recruiterId: { in: ids } } }] } });
+  await db.mission.deleteMany({ where: { recruiterId: { in: ids } } });
+  await db.category.deleteMany({ where: { id: { in: categories } } });
+  await db.user.deleteMany({ where: { id: { in: ids } } });
+  await db.$disconnect();
+}

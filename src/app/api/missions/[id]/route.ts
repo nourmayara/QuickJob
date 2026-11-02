@@ -12,7 +12,8 @@ export const GET = protectedRoute(["TRAVAILLEUR","RECRUTEUR"], async (_request, 
 export const PATCH = protectedRoute(["RECRUTEUR"], async (request, context, user) => {
   const id = idSchema.safeParse((await context.params).id);
   const input = missionUpdate.safeParse(await request.json().catch(()=>null));
-  if(!id.success || !input.success) return fail(400,"Données invalides");
+  if(!id.success) return fail(400,"Identifiant invalide");
+  if(!input.success) return fail(400, input.error.issues[0].message);
   await updateMission(user.id, id.data, input.data);
   return NextResponse.json({ok:true});
 });

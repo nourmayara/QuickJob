@@ -10,9 +10,16 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   const { name, email, password, firstName, phone, role, city, recruiterType, companyName } = parsed.data;
   try {
-    const user = await prisma.user.create({
+    const user = await prisma.$transaction(async tx => {
+    const created = await tx.user.create({
       data: { name, email, firstName, phone, role, city: role === "TRAVAILLEUR" ? city : null, recruiterType: role === "RECRUTEUR" ? recruiterType : null, companyName: role === "RECRUTEUR" && recruiterType === "COMPANY" ? companyName : null, password: await bcrypt.hash(password, 10), ...(role === "RECRUTEUR" ? { recruiterVerification: { create: { status: "EN_ATTENTE", requestedAt: new Date() } } } : {}) },
       select: { id: true, name: true, email: true, role: true, recruiterVerification: { select: {status:true} } },
+    });
+    if (role === "RECRUTEUR") {
+      const admins = await tx.user.findMany({ where: { role: "ADMIN", suspended: false }, select: { id: true } });
+      if (admins.length) await tx.notification.createMany({ data: admins.map(admin => ({ userId: admin.id, kind: "VERIFICATION", message: "Un nouveau compte recruteur attend votre vérification." })) });
+    }
+    return created;
     });
     await createSession(user.id);
     return NextResponse.json(user, { status: 201 });

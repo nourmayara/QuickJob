@@ -2,11 +2,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { categories, missionFormSchema } from "@/lib/recruiter-validation";
+import { missionFormSchema } from "@/lib/recruiter-validation";
 import Icon from "./Icon";
 
 export type MissionFormValues = { id: number; title: string; description: string; category: string | null; city: string | null; address: string | null; date: string; startTime: string | null; endTime: string | null; pay: number | null; capacity: number; skills: string | null; experience: string | null; status: string };
-export default function MissionForm({ mission }: { mission?: MissionFormValues }) {
+export default function MissionForm({ mission, categories }: { mission?: MissionFormValues; categories: string[] }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -25,7 +25,7 @@ export default function MissionForm({ mission }: { mission?: MissionFormValues }
       const response = await fetch(mission ? `/api/missions/${mission.id}` : "/api/missions", { method: mission ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const result = await response.json();
       if (!response.ok) { setError(result.error ?? "Enregistrement impossible"); return; }
-      router.push(`/recruteur/missions/${mission?.id ?? result.id}`); router.refresh();
+      router.push(`/recruteur/missions/${mission?.id ?? result.id}`);
     } catch { setError("Connexion au serveur impossible. Réessayez."); }
     finally { setPending(false); }
   }
@@ -34,7 +34,7 @@ export default function MissionForm({ mission }: { mission?: MissionFormValues }
     <fieldset disabled={pending} style={{ border: 0, padding: 0, margin: 0 }}><legend className="sr-only">Informations de la mission</legend><div className="rq-form-grid">
       <label className="rq-field rq-span-2">Titre de la mission<input name="title" required minLength={3} maxLength={160} defaultValue={mission?.title} placeholder="Ex. Serveurs pour un événement" /></label>
       <label className="rq-field rq-span-2">Description<textarea name="description" required minLength={10} maxLength={10000} defaultValue={mission?.description} placeholder="Présentez les tâches, le contexte et les conditions de la mission…" /></label>
-      <label className="rq-field">Catégorie<select name="category" required defaultValue={mission?.category || ""}><option value="" disabled>Choisir une catégorie</option>{categories.map(c => <option key={c}>{c}</option>)}{mission?.category && !categories.includes(mission.category) && <option>{mission.category}</option>}</select></label>
+      <label className="rq-field">Catégorie<select name="category" required defaultValue={mission?.category || ""}><option value="" disabled>Choisir une catégorie</option>{categories.map(c => <option key={c}>{c}</option>)}{mission?.category && mission.status !== "DRAFT" && !categories.includes(mission.category) && <option>{mission.category}</option>}</select></label>
       <label className="rq-field">Ville<input name="city" required maxLength={100} defaultValue={mission?.city || ""} placeholder="Ex. Tunis" /></label>
       <label className="rq-field rq-span-2">Adresse<input name="address" required minLength={3} maxLength={250} defaultValue={mission?.address || ""} placeholder="Adresse exacte du lieu de la mission" /></label>
       <label className="rq-field">Date<input name="date" type="date" required defaultValue={mission?.date} /></label>

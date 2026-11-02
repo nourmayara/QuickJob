@@ -1,0 +1,35 @@
+/* QuickJob icon language: clay for objects, glass for metrics, outline for controls. */
+body.qj-clay .qj-soft-icon{--qji-light:#88ddff;--qji-main:#2585ff;--qji-dark:#2449cb;display:inline-grid;position:relative;isolation:isolate;place-items:center;flex-shrink:0;vertical-align:middle;width:44px;height:44px;padding:0;border:1px solid #ffffffda;border-radius:15px;background:linear-gradient(145deg,#f5fcff,#c4e0ff);box-shadow:inset 1px 2px 2px #fff,inset -1px -2px 3px #5186c41c,0 5px 9px #496cb62b;color:#2454c6;transition:transform .18s ease,box-shadow .18s ease}
+body.qj-clay .qj-soft-icon>svg{display:block;flex-shrink:0;overflow:visible;filter:drop-shadow(0 2px 1px #27419b26);max-width:90%;max-height:90%}
+body.qj-clay .qj-soft-icon[data-variant="clay"]>svg{transform:rotate(-4deg);filter:drop-shadow(1px 3px 1px #314d9e30)}
+body.qj-clay .qj-soft-icon:not([data-variant="outline"])>svg{position:absolute;left:50%;top:50%;width:calc(var(--qji-glyph-size,22px)*1.22);height:calc(var(--qji-glyph-size,22px)*1.22);transform:translate(-50%,-50%);max-width:88%;max-height:88%}
+body.qj-clay .qj-soft-icon[data-variant="clay"]>svg{transform:translate(-50%,-50%) rotate(-4deg)}
+body.qj-clay .qj-soft-icon[data-variant="glass"],body.qj-clay :is(.rq-stat,.rqd-kpi,.rqm-kpi,.rq-quick,.rqd-quick-actions,.ad-actions) .qj-soft-icon{background:linear-gradient(140deg,#ffffffed,#d8eaffc2 55%,#c5dcff95);border-color:#fffffff0;box-shadow:inset 1px 2px 2px #fff,inset -1px -2px 3px #748bcc26,0 7px 12px #4d69b12b}
+body.qj-clay .qj-soft-icon:before{content:"";position:absolute;inset:2px 5px 55% 4px;border-radius:11px 11px 50% 50%;background:linear-gradient(145deg,#ffffffa6,#ffffff06);pointer-events:none;z-index:1}
+body.qj-clay .qj-soft-icon[data-tone="yellow"],body.qj-clay .qj-soft-icon:is([data-icon="star"],[data-icon="bell"],[data-icon="handshake"]){--qji-light:#ffeb8a;--qji-main:#ffc62b;--qji-dark:#e6a012;background:linear-gradient(145deg,#fffdf2,#fff0ba);color:#b47d08}
+body.qj-clay .qj-soft-icon:is([data-icon="people"],[data-icon="layers"],[data-icon="calendar"],[data-icon="headset"],[data-icon="pin"],[data-icon="settings"]){--qji-light:#d1acff;--qji-main:#9457f5;--qji-dark:#6333ce;background:linear-gradient(145deg,#faf6ff,#e6d9ff);color:#7147cc}
+body.qj-clay .qj-soft-icon[data-icon="check"]{--qji-light:#a0f8bf;--qji-main:#33d286;--qji-dark:#0a9d69;background:linear-gradient(145deg,#f0fff5,#c0f3d5);color:#14895c}
+body.qj-clay .qj-soft-icon[data-icon="heart"]{--qji-light:#ffbddb;--qji-main:#ff6ea7;--qji-dark:#dc3d79;background:linear-gradient(145deg,#fff5fa,#ffe0ed);color:#dd4c89}
+body.qj-clay .qj-soft-icon[data-tone="navy"]{background:linear-gradient(145deg,#e4edff,#c5d9ff);color:#2851ae}
+body.qj-clay .qj-soft-icon[data-variant="outline"]{background:transparent!important;border:0;box-shadow:none!important;border-radius:0;width:auto;height:auto;color:inherit}
+body.qj-clay .qj-soft-icon[data-variant="outline"]:before{display:none}
+body.qj-clay .qj-soft-icon[data-variant="outline"]>svg{filter:none;transform:none}
+.qj-outline-icon{display:inline-block;vertical-align:middle;flex-shrink:0;overflow:visible;transition:color .16s ease,opacity .16s ease}
+body.qj-clay :is(.rq-sidebar,.rq-header,form) .qj-outline-icon{filter:none}
+.qj-icon-inline{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+body.qj-clay .qj-soft-icon.qj-heading-icon{width:35px;height:35px;margin-right:11px;border-radius:12px;vertical-align:middle}
+body.qj-clay .wk-category>.qj-soft-icon,body.qj-clay .rqm-category>.qj-soft-icon{width:25px;height:25px;border-radius:9px}
+body.qj-clay .job-symbol>.qj-soft-icon,body.qj-clay .category-icon>.qj-soft-icon{width:100%;height:100%;border-radius:inherit}
+body.qj-clay .qj-review-form .qj-outline-icon{color:#bf8d0d;margin-right:6px}
+body.qj-clay .city-card-copy .qj-soft-icon{width:25px;height:25px;border-radius:9px;margin-right:4px}
+body.qj-clay .city-account .qj-outline-icon{margin-left:4px}
+body.qj-clay .auth-role-icon .qj-soft-icon{width:40px;height:40px;border-radius:13px}
+body.qj-clay .auth-password button{display:inline-flex;align-items:center;justify-content:center;gap:5px}
+body.qj-clay .auth-password button .qj-outline-icon{width:17px;height:17px}
+body.qj-clay .qj-bell-trigger>.qj-soft-icon{width:34px;height:34px;border-radius:12px;pointer-events:none}
+body.qj-clay .mission-icon>.qj-soft-icon,body.qj-clay .cat-symbol>.qj-soft-icon{width:100%;height:100%;border-radius:inherit}
+body.qj-clay .qj-home .qj-soft-icon{width:42px;height:42px}
+body.qj-clay .wk-favorite .qj-outline-icon{color:#db4c8c}
+body.qj-clay .wk-favorite[aria-pressed="true"] .qj-outline-icon{fill:#ffc4dd}
+@media(hover:hover){body.qj-clay :is(a,button,article):hover>.qj-soft-icon{transform:translateY(-2px);box-shadow:inset 1px 2px 2px #fff,0 8px 13px #496cb62d}}
+@media(prefers-reduced-motion:reduce){body.qj-clay .qj-soft-icon,body.qj-clay .qj-soft-icon>svg,.qj-outline-icon{transition:none!important;animation:none!important}}

@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
+import Icon from "@/components/recruiter/Icon";
+import SoftIcon from "@/components/SoftIcon";
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { dashboardPath } from "@/lib/roles";
@@ -11,7 +13,7 @@ function PasswordField({ confirm = false, register = false }: { confirm?: boolea
   const [visible, setVisible] = useState(false);
   const name = confirm ? "confirmPassword" : "password";
   const id = `${register ? "register" : "login"}-${name}`;
-  return <label className="auth-field" htmlFor={id}>{confirm ? "Confirmer le mot de passe" : "Mot de passe"}<span className="auth-password"><input id={id} name={name} type={visible ? "text" : "password"} autoComplete={register ? "new-password" : "current-password"} required minLength={register ? 8 : 1} aria-describedby={register && !confirm ? "register-password-help" : undefined} /><button type="button" aria-label={`${visible ? "Masquer" : "Afficher"} ${confirm ? "la confirmation du" : "le"} mot de passe`} aria-pressed={visible} onClick={() => setVisible(!visible)}>{visible ? "Masquer" : "Afficher"}</button></span></label>;
+  return <label className="auth-field" htmlFor={id}>{confirm ? "Confirmer le mot de passe" : "Mot de passe"}<span className="auth-password"><input id={id} name={name} type={visible ? "text" : "password"} autoComplete={register ? "new-password" : "current-password"} required minLength={register ? 8 : 1} aria-describedby={register && !confirm ? "register-password-help" : undefined} /><button type="button" aria-label={`${visible ? "Masquer" : "Afficher"} ${confirm ? "la confirmation du" : "le"} mot de passe`} aria-pressed={visible} onClick={() => setVisible(!visible)}><Icon name={visible ? "eyeOff" : "eye"} size={17} />{visible ? "Masquer" : "Afficher"}</button></span></label>;
 }
 
 export default function AuthForm({ mode, disabled = false, onRoleChange, onBusyChange, onStepChange, intent = null }: { mode: "login" | "register"; disabled?: boolean; onRoleChange?: (role: "TRAVAILLEUR" | "RECRUTEUR") => void; onBusyChange?: (busy: boolean) => void; onStepChange?: (step: number) => void; intent?: Journey | null }) {
@@ -52,11 +54,19 @@ export default function AuthForm({ mode, disabled = false, onRoleChange, onBusyC
     finally { setLoading(false); onBusyChange?.(false); }
   }
   return <form onSubmit={submit} className="auth-form" aria-busy={loading} data-auth-form={mode} data-step={register ? step : undefined}><fieldset className="auth-controls" disabled={disabled || loading}><legend className="sr-only">{register ? "Créer un compte" : "Se connecter"}</legend>
-    {register && <><ol className="auth-steps" aria-label="Étapes d’inscription"><li aria-current={step === 1 ? "step" : undefined}><span>1</span> Votre rôle</li><li aria-current={step === 2 ? "step" : undefined}><span>2</span> Vos informations</li></ol><h2 className="auth-step-title" ref={heading} tabIndex={-1}>{step === 1 ? "Comment souhaitez-vous nous rejoindre ?" : "Faisons connaissance"}</h2></>}
+    {register && <><ol className="auth-steps" aria-label="Étapes d’inscription"><li data-state={step === 1 ? "active" : "complete"} aria-current={step === 1 ? "step" : undefined}><span aria-hidden="true">{step === 2 ? <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m4 10 4 4 8-8" /></svg> : "1"}</span> Votre rôle{step === 2 && <small className="sr-only"> — terminé</small>}</li><li data-state={step === 2 ? "active" : "upcoming"} aria-current={step === 2 ? "step" : undefined}><span aria-hidden="true">2</span> Vos informations</li></ol><h2 className="auth-step-title" ref={heading} tabIndex={-1}>{step === 1 ? "Comment souhaitez-vous nous rejoindre ?" : "Faisons connaissance"}</h2></>}
     {register && <fieldset className="auth-role-group" hidden={step !== 1}><legend className="sr-only">Votre rôle</legend>{([
-      ["TRAVAILLEUR", "/images/worker-illustration.png", "Je suis Travailleur", "Je recherche des missions ponctuelles adaptées à mes disponibilités."],
-      ["RECRUTEUR", "/images/recruiter-illustration.png", "Je suis Recruteur", "Je souhaite publier des missions et recruter des travailleurs."],
-    ] as const).map(([value, image, title, description]) => <label className="auth-role" key={value}><input type="radio" name="roleChoice" value={value} checked={role === value} onChange={() => chooseRole(value)} /><span className="auth-role-visual" aria-hidden="true"><Image src={image} alt="" fill sizes="150px" /></span><span className="auth-role-copy"><span className="auth-role-icon" aria-hidden="true">{value === "TRAVAILLEUR" ? "♙" : "▣"}</span><strong>{title}</strong><span>{description}</span></span><span className="auth-role-check" aria-hidden="true">{role === value ? "✓" : ""}</span></label>)}</fieldset>}
+      ["TRAVAILLEUR", "/images/role-worker-clay.png", "Travailleur", "Trouvez des missions près de chez vous."],
+      ["RECRUTEUR", "/images/role-recruiter-clay.png", "Recruteur", "Publiez vos missions et trouvez les bons profils."],
+    ] as const).map(([value, image, title, description]) => <div className="auth-role" data-role={value} key={value}>
+      <input id={`register-role-${value}`} type="radio" name="roleChoice" value={value} checked={role === value} onChange={() => chooseRole(value)} />
+      <label className="auth-role-label" htmlFor={`register-role-${value}`}>
+        <span className="auth-role-copy"><span className="auth-role-icon" aria-hidden="true"><SoftIcon name={value === "TRAVAILLEUR" ? "chart" : "briefcase"} size={27} /></span><span className="auth-role-intro">Je suis</span><strong>{title}</strong><span className="auth-role-description">{description}</span></span>
+        <span className="auth-role-visual" aria-hidden="true"><Image src={image} alt="" fill sizes="(max-width: 540px) 80vw, 380px" unoptimized /></span>
+        <span className="auth-role-check" aria-hidden="true">{role === value ? "✓" : ""}</span>
+      </label>
+      <button type="button" className="auth-role-arrow" aria-label={`Continuer en tant que ${title.toLowerCase()}`} onClick={() => { chooseRole(value); changeStep(2); }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" /></svg></button>
+    </div>)}</fieldset>}
     <fieldset className="auth-inputs" hidden={register && step === 1} disabled={loading || (register && step === 1)}><legend className="sr-only">{register ? "Informations personnelles" : "Identifiants"}</legend>
       {register && <div className="auth-row"><label className="auth-field">Nom<input name="name" autoComplete="family-name" required minLength={2} maxLength={80} /></label><label className="auth-field">Prénom<input name="firstName" autoComplete="given-name" required maxLength={80} /></label></div>}
       <label className="auth-field">Adresse email<input name="email" type="email" autoComplete="email" required maxLength={254} placeholder="vous@exemple.com" /></label>

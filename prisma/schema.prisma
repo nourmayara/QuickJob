@@ -4,98 +4,330 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id Int @id @default(autoincrement())
-  name String
-  firstName String @default("")
-  phone String @default("")
-  role String @default("TRAVAILLEUR")
-  suspended Boolean @default(false)
-  sessions Session[]
-  missions Mission[]
-  applications Application[]
-  city String?
-  recruiterType String?
-  companyName String?
-  sector String?
-  bio String?
-  avatarUrl String?
-  skills String?
-  experience String?
-  languages String?
-  email String @unique
-  password String
-  createdAt DateTime @default(now())
-  recruiterVerification RecruiterVerification? @relation("RecruiterVerificationOwner")
-  recruiterDecisions RecruiterVerification[] @relation("RecruiterVerificationAdmin")
-  notifications Notification[]
+  id                    Int                        @id @default(autoincrement())
+  name                  String
+  firstName             String                     @default("")
+  phone                 String                     @default("")
+  role                  String                     @default("TRAVAILLEUR")
+  suspended             Boolean                    @default(false)
+  sessions              Session[]
+  missions              Mission[]
+  applications          Application[]
+  availabilities        Availability[]
+  favorites             Favorite[]
+  address               String?
+  city                  String?
+  recruiterType         String?
+  companyName           String?
+  sector                String?
+  bio                   String?
+  avatarUrl             String?
+  skills                String?
+  experience            String?
+  languages             String?
+  email                 String                     @unique
+  password              String
+  createdAt             DateTime                   @default(now())
+  recruiterVerification RecruiterVerification?     @relation("RecruiterVerificationOwner")
+  recruiterDecisions    RecruiterVerification[]    @relation("RecruiterVerificationAdmin")
+  notifications         Notification[]
+  sentMessages          Message[]
+  authoredReviews       Review[]                   @relation("ReviewAuthor")
+  receivedReviews       Review[]                   @relation("ReviewRecipient")
+  reports               Report[]                   @relation("ReportAuthor")
+  reportedProfiles      Report[]                   @relation("ReportTarget")
+  moderatedReports      Report[]                   @relation("ReportModerator")
+  adminActions          AdminAction[]
+  workerSkills          WorkerSkill[]
+  workExperiences       WorkExperience[]
+  categoryPreferences   WorkerCategoryPreference[]
+  matchRecommendations  MatchRecommendation[]
+  recommendationOptIn   Boolean                    @default(false)
+
+  @@index([createdAt])
 }
 
 model RecruiterVerification {
-  userId Int @id
-  user User @relation("RecruiterVerificationOwner", fields: [userId], references: [id], onDelete: Cascade)
-  status String @default("EN_ATTENTE")
-  requestedAt DateTime? @default(now())
-  decidedAt DateTime?
-  decidedById Int?
-  decidedBy User? @relation("RecruiterVerificationAdmin", fields: [decidedById], references: [id], onDelete: SetNull)
+  userId        Int           @id
+  user          User          @relation("RecruiterVerificationOwner", fields: [userId], references: [id], onDelete: Cascade)
+  status        String        @default("EN_ATTENTE")
+  requestedAt   DateTime?     @default(now())
+  decidedAt     DateTime?
+  decidedById   Int?
+  decidedBy     User?         @relation("RecruiterVerificationAdmin", fields: [decidedById], references: [id], onDelete: SetNull)
   refusalReason String?
-  legacy Boolean @default(false)
-  notification Notification?
+  legacy        Boolean       @default(false)
+  notification  Notification?
+
   @@index([status, requestedAt])
 }
 
 model Notification {
-  id Int @id @default(autoincrement())
-  userId Int
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  message String
-  createdAt DateTime @default(now())
-  verificationId Int? @unique
-  verification RecruiterVerification? @relation(fields: [verificationId], references: [userId], onDelete: Cascade)
+  kind           String?
+  missionId      Int?
+  applicationId  Int?
+  readAt         DateTime?
+  id             Int                    @id @default(autoincrement())
+  userId         Int
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message        String
+  createdAt      DateTime               @default(now())
+  verificationId Int?                   @unique
+  verification   RecruiterVerification? @relation(fields: [verificationId], references: [userId], onDelete: Cascade)
+
   @@index([userId, createdAt])
 }
 
 model Session {
-  id String @id
-  userId Int
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
+
   @@index([userId])
 }
+
 model Mission {
-  id Int @id @default(autoincrement())
-  title String
-  description String
-  status String @default("PUBLISHED")
-  category String?
-  city String?
-  address String?
-  date DateTime?
-  startTime String?
-  endTime String?
-  pay Float?
-  capacity Int @default(1)
-  skills String?
-  experience String?
-  recruiterId Int
-  recruiter User @relation(fields: [recruiterId], references: [id])
-  applications Application[]
-  createdAt DateTime @default(now())
+  reports                  Report[]
+  reviews                  Review[]
+  favorites                Favorite[]
+  id                       Int                   @id @default(autoincrement())
+  title                    String
+  description              String
+  status                   String                @default("PUBLISHED")
+  category                 String?
+  city                     String?
+  address                  String?
+  date                     DateTime?
+  startTime                String?
+  endTime                  String?
+  pay                      Float?
+  capacity                 Int                   @default(1)
+  skills                   String?
+  experience               String?
+  recruiterId              Int
+  recruiter                User                  @relation(fields: [recruiterId], references: [id])
+  applications             Application[]
+  requiredSkills           MissionSkill[]
+  matchRecommendations     MatchRecommendation[]
+  requiredExperienceMonths Int?
+  replacementOffers        ReplacementOffer[]
+  createdAt                DateTime              @default(now())
+
   @@index([recruiterId])
+  @@index([recruiterId, status, date])
 }
-model Application {
-  id Int @id @default(autoincrement())
+
+model Skill {
+  id            Int            @id @default(autoincrement())
+  name          String
+  key           String         @unique
+  aliases       String?
+  workerSkills  WorkerSkill[]
+  missionSkills MissionSkill[]
+  createdAt     DateTime       @default(now())
+}
+
+model WorkerSkill {
+  workerId          Int
+  worker            User      @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  skillId           Int
+  skill             Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  level             Int?
+  yearsOfExperience Float?
+  source            String    @default("PROFILE")
+  verifiedAt        DateTime?
+
+  @@id([workerId, skillId])
+  @@index([skillId])
+}
+
+model MissionSkill {
   missionId Int
-  mission Mission @relation(fields: [missionId], references: [id])
+  mission   Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  skillId   Int
+  skill     Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  required  Boolean @default(true)
+  weight    Float   @default(1)
+
+  @@id([missionId, skillId])
+  @@index([skillId])
+}
+
+model WorkExperience {
+  id          Int       @id @default(autoincrement())
+  workerId    Int
+  worker      User      @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  title       String
+  category    String?
+  description String?
+  city        String?
+  startedAt   DateTime
+  endedAt     DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([workerId, startedAt])
+}
+
+model WorkerCategoryPreference {
   workerId Int
-  worker User @relation(fields: [workerId], references: [id])
-  status String @default("PENDING")
-  message String?
-  createdAt DateTime @default(now())
+  worker   User   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  category String
+
+  @@id([workerId, category])
+  @@index([category])
+}
+
+model MatchRecommendation {
+  id              Int      @id @default(autoincrement())
+  workerId        Int
+  worker          User     @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  missionId       Int
+  mission         Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  score           Int
+  explanation     String
+  criteriaVersion String
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
+
+  @@unique([workerId, missionId])
+  @@index([missionId, score])
+  @@index([workerId, score])
+}
+
+model Application {
+  messages            Message[]
+  id                  Int               @id @default(autoincrement())
+  missionId           Int
+  mission             Mission           @relation(fields: [missionId], references: [id])
+  workerId            Int
+  worker              User              @relation(fields: [workerId], references: [id])
+  status              String            @default("PENDING")
+  message             String?
+  createdAt           DateTime          @default(now())
+  cancelledBy         String?
+  cancelledAt         DateTime?
+  cancelledFromStatus String?
+  replacementOffer    ReplacementOffer? @relation("ReplacementCandidate")
+
   @@unique([missionId, workerId])
   @@index([workerId])
+  @@index([workerId, status])
+  @@index([missionId, status])
+}
+
+model ReplacementOffer {
+  id                     Int         @id @default(autoincrement())
+  missionId              Int
+  mission                Mission     @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  cancelledApplicationId Int
+  applicationId          Int         @unique
+  application            Application @relation("ReplacementCandidate", fields: [applicationId], references: [id], onDelete: Cascade)
+  status                 String      @default("PENDING")
+  createdApplication     Boolean     @default(false)
+  createdAt              DateTime    @default(now())
+  expiresAt              DateTime
+  respondedAt            DateTime?
+
+  @@index([cancelledApplicationId, status])
+  @@index([missionId, status])
+}
+
+model Availability {
+  id       Int      @id @default(autoincrement())
+  workerId Int
+  worker   User     @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  startAt  DateTime
+  endAt    DateTime
+  kind     String
+  note     String   @default("")
+
+  @@index([workerId, startAt, endAt])
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  workerId  Int
+  worker    User     @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  missionId Int
+  mission   Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([workerId, missionId])
+  @@index([missionId])
+}
+
+model Message {
+  id            Int         @id @default(autoincrement())
+  applicationId Int
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  senderId      Int
+  sender        User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body          String
+  createdAt     DateTime    @default(now())
+  readAt        DateTime?
+
+  @@index([applicationId, id])
+}
+
+model Review {
+  id          Int      @id @default(autoincrement())
+  missionId   Int
+  mission     Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  authorId    Int
+  author      User     @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  recipientId Int
+  recipient   User     @relation("ReviewRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  rating      Int
+  comment     String
+  createdAt   DateTime @default(now())
+
+  @@unique([authorId, recipientId, missionId])
+  @@index([recipientId])
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  key       String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Report {
+  id           Int       @id @default(autoincrement())
+  kind         String
+  reason       String
+  status       String    @default("NOUVEAU")
+  authorId     Int?
+  author       User?     @relation("ReportAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  targetUserId Int?
+  targetUser   User?     @relation("ReportTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+  missionId    Int?
+  mission      Mission?  @relation(fields: [missionId], references: [id], onDelete: SetNull)
+  moderatorId  Int?
+  moderator    User?     @relation("ReportModerator", fields: [moderatorId], references: [id], onDelete: SetNull)
+  resolution   String?
+  decidedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([status, createdAt])
+  @@index([authorId])
+}
+
+model AdminAction {
+  id         Int      @id @default(autoincrement())
+  adminId    Int?
+  admin      User?    @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  action     String
+  targetType String
+  targetId   Int
+  reason     String
+  createdAt  DateTime @default(now())
+
+  @@index([targetType, targetId, createdAt])
 }

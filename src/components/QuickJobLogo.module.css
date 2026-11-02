@@ -1,0 +1,14 @@
+.logo {
+  display: block;
+  width: clamp(110px, 12vw, 160px);
+  height: auto;
+  flex-shrink: 0;
+}
+
+.logo:global(.calendar-brand-logo),
+.logo:global(.demo-brand-logo) {
+  display: inline-block;
+  width: 48px;
+  height: auto;
+  vertical-align: middle;
+}

@@ -13,6 +13,6 @@ export const GET = protectedRoute(["TRAVAILLEUR","RECRUTEUR"], async (_request, 
 });
 export const POST = protectedRoute(["RECRUTEUR"], async (request, _context, user) => {
   const input = missionInput.safeParse(await request.json().catch(()=>null));
-  if (!input.success) return fail(400,"Mission invalide");
+  if (!input.success) return fail(400, input.error.issues[0].message);
   return NextResponse.json(await createMission(user.id, input.data),{status:201});
 });

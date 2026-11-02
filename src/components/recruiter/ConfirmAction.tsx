@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function ConfirmAction({ endpoint, data, label, title, description, danger = false, primary = false }: { endpoint: string; data: Record<string, string>; label: string; title: string; description: string; danger?: boolean; primary?: boolean }) {
+export default function ConfirmAction({ endpoint, data, label, title, description, danger = false, primary = false }: { endpoint: string; data: Record<string, unknown>; label: string; title: string; description: string; danger?: boolean; primary?: boolean }) {
   const router = useRouter();
   const dialog = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);

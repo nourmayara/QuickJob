@@ -1,33 +1,68 @@
 import Link from "next/link";
-import prisma from "@/lib/prisma";
+import { recruiterDashboardData } from "@/lib/dashboard-data";
 import { requirePageRole } from "@/lib/authorization";
-import { missionInclude, workerSelect } from "@/lib/recruiter-data";
 import Icon, { type IconName } from "@/components/recruiter/Icon";
-import { Avatar, Badge, EmptyState, PageHeading, Panel, PublishLink, formatDate } from "@/components/recruiter/ui";
-import MissionTable from "@/components/recruiter/MissionTable";
+import SoftIcon from "@/components/SoftIcon";
+import { Avatar, Badge, EmptyState, PublishLink, formatDate } from "@/components/recruiter/ui";
+import { ApplicationTrend, MissionDistribution, MissionCategories, RecruitmentFunnel } from "@/components/recruiter/RecruiterDashboardCharts";
+import "./statistics.css";
 
 export default async function RecruiterDashboard() {
   const user = await requirePageRole(["RECRUTEUR"]);
-  const scope = { recruiterId: user.id };
-  const [active, applications, selected, completed, missions, recent, upcoming] = await Promise.all([
-    prisma.mission.count({ where: { ...scope, status: { in: ["PUBLISHED", "FULL", "CLOSED", "IN_PROGRESS"] } } }),
-    prisma.application.count({ where: { mission: scope } }),
-    prisma.application.count({ where: { mission: scope, status: "ACCEPTED" } }),
-    prisma.mission.count({ where: { ...scope, status: "COMPLETED" } }),
-    prisma.mission.findMany({ where: scope, include: missionInclude, orderBy: { createdAt: "desc" }, take: 5 }),
-    prisma.application.findMany({ where: { mission: scope }, include: { worker: { select: workerSelect }, mission: { select: { title: true } } }, orderBy: { createdAt: "desc" }, take: 4 }),
-    prisma.mission.findMany({ where: { ...scope, date: { gte: new Date(new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Tunis" }) + "T00:00:00Z") }, status: { in: ["PUBLISHED", "FULL", "CLOSED", "IN_PROGRESS"] } }, include: missionInclude, orderBy: { date: "asc" }, take: 3 }),
-  ]);
-  const stats: [string, number, IconName, string][] = [["Missions actives", active, "briefcase", "Publiées, complètes ou en cours"], ["Candidatures reçues", applications, "people", "Sur l’ensemble de vos missions"], ["Travailleurs sélectionnés", selected, "check", "Candidatures acceptées"], ["Missions terminées", completed, "calendar", "Votre historique de missions"]];
-  return <>
-    <PageHeading eyebrow="VOTRE ACTIVITÉ, EN UN CLIN D’ŒIL" title={`Bonjour, ${user.firstName || user.name} 👋`} description="Gérez vos missions et trouvez les bons talents pour vos besoins." action={<PublishLink />} />
-    <div className="rq-stats">{stats.map(([label, value, icon, note]) => <div className="rq-stat" key={label}><div className="rq-stat-top"><span>{label}</span><span className="rq-stat-icon"><Icon name={icon} size={18} /></span></div><strong>{value}</strong><small>{note}</small></div>)}</div>
-    <Panel title="Mes missions récentes" description="Suivez vos dernières publications et leur avancement." action={<Link className="rq-link" href="/recruteur/missions">Voir toutes mes missions <Icon name="arrow" size={14} /></Link>}><MissionTable missions={missions} />{!missions.length && <div style={{ textAlign: "center", paddingBottom: 24 }}><PublishLink /></div>}</Panel>
-    <div className="rq-dashboard-columns"><Panel title="Candidatures récentes" description="Les derniers talents qui souhaitent vous rejoindre." action={<Link href="/recruteur/candidatures" className="rq-link">Tout voir <Icon name="arrow" size={14} /></Link>}>
-      {recent.length ? recent.map(a => <div key={a.id} className="rq-person-row"><div className="rq-person"><Avatar name={`${a.worker.firstName} ${a.worker.name}`} /><div><strong>{a.worker.firstName} {a.worker.name}</strong><small>{a.mission.title}</small><p className="rq-person-skill">{a.worker.skills || "Compétences non renseignées"} · {formatDate(a.createdAt)}</p></div></div><div className="rq-person-meta"><Badge status={a.status} application /><Link className="rq-link" href={`/recruteur/candidatures/${a.id}`}>Voir le profil</Link></div></div>) : <EmptyState icon="people" title="Vos futurs talents sont en chemin">Les candidatures reçues apparaîtront ici dès qu’un travailleur postulera à l’une de vos missions.</EmptyState>}
-    </Panel><Panel title="Prochaines missions" description="Un aperçu de votre agenda.">
-      {upcoming.length ? upcoming.map(m => <Link key={m.id} href={`/recruteur/missions/${m.id}`} className="rq-upcoming"><span className="rq-date-tile"><strong>{m.date?.getUTCDate()}</strong>{m.date?.toLocaleDateString("fr-FR", { month: "short", timeZone: "UTC" })}</span><div><h3>{m.title}</h3><p><Icon name="clock" size={12} />{formatDate(m.date)} · {m.startTime || "—"} – {m.endTime || "—"}</p><p><Icon name="pin" size={12} />{[m.address, m.city].filter(Boolean).join(", ") || "Lieu à préciser"}</p><p><Icon name="people" size={12} />{m.applications.length} travailleur{m.applications.length > 1 ? "s" : ""} sélectionné{m.applications.length > 1 ? "s" : ""}</p></div></Link>) : <EmptyState icon="calendar" title="Un agenda prêt à se remplir">Aucune mission à venir pour le moment. Vos prochaines missions planifiées s’afficheront ici.</EmptyState>}
-    </Panel></div>
-    <h2 className="rq-section-label">Actions rapides</h2><div className="rq-quick-actions">{([["missions/nouvelle", "Publier une mission", "Trouvez vos prochains talents", "plus"], ["candidatures", "Gérer les candidatures", "Composez votre équipe", "people"], ["missions", "Consulter mes missions", "Gardez le fil de votre activité", "briefcase"]] as const).map(([href, title, note, icon]) => <Link className="rq-quick" href={`/recruteur/${href}`} key={href}><span><Icon name={icon} /></span><div><strong>{title}</strong><p>{note}</p></div><Icon name="arrow" size={16} /></Link>)}</div>
-  </>;
+  const { active, applications, completed, missions, recent, upcoming, hired, pending, charts } = await recruiterDashboardData(user.id);
+  const displayName = user.firstName || user.name;
+  const stats: [string, number, IconName][] = [
+    ["Missions actives", active, "briefcase"],
+    ["Candidatures reçues", applications, "people"],
+    ["Recrutements réalisés", hired, "handshake"],
+    ["Missions terminées", completed, "calendar"],
+  ];
+
+  return <div className="rqd-page">
+    <section className="rqd-welcome" aria-labelledby="recruiter-welcome-title">
+      <div className="rqd-welcome-icon"><SoftIcon name="briefcase" tone="yellow" size={25} /></div>
+      <div className="rqd-welcome-copy"><h1 id="recruiter-welcome-title">Bonjour, {displayName} !</h1></div>
+    </section>
+
+    <section className="rqd-kpis" aria-label="Indicateurs de recrutement">
+      {stats.map(([label, value, icon], index) => <article className={`rqd-kpi rqd-kpi-${index + 1}`} key={label}>
+        <SoftIcon name={icon} tone={index === 3 ? "yellow" : index === 2 ? "glass" : "sky"} size={25} />
+        <div><strong data-kpi={["active", "applications", "recruitments", "completed"][index]} data-value={value}>{value.toLocaleString("fr-FR")}</strong><h2>{label}</h2></div>
+      </article>)}
+    </section>
+
+    <div className="rqd-insights">
+      <section className="rqd-glass rqd-performance">
+          <header><div><SoftIcon name="chart" size={20} /><h2>Évolution des candidatures</h2></div></header>
+        <ApplicationTrend points={charts.applications} />
+      </section>
+      <section className="rqd-glass rqd-distribution">
+        <header><div><SoftIcon name="people" size={20} /><h2>Répartition des missions</h2></div></header>
+        <MissionDistribution points={charts.missions} />
+      </section>
+    </div>
+
+    <div className="rqd-feed-grid rqs-detail-grid">
+      <section className="rqd-glass"><header><div><SoftIcon name="briefcase" size={20} /><h2>Missions par catégorie</h2></div></header><MissionCategories points={charts.categories} /></section>
+      <section className="rqd-glass"><header><div><SoftIcon name="people" size={20} /><h2>Entonnoir de recrutement</h2></div></header><RecruitmentFunnel total={applications} pending={pending} hired={hired} /></section>
+    </div>
+
+    <div className="rqd-feed-grid">
+      <section className="rqd-glass rqd-list-card">
+        <header><div><SoftIcon name="briefcase" size={20} /><h2>Dernières missions</h2></div><Link href="/recruteur/missions">Voir tout <Icon name="arrow" size={14} /></Link></header>
+        <div className="rqd-rows">{missions.length ? missions.slice(0, 4).map(mission => <Link href={`/recruteur/missions/${mission.id}`} className="rqd-mission-row" key={mission.id}><span className="rqd-row-icon"><Icon name="briefcase" size={17} /></span><div><strong>{mission.title}</strong><small>{mission.city || "Lieu à préciser"} · {formatDate(mission.date)}</small></div><span className="rqd-count">{mission._count.applications} candidature{mission._count.applications > 1 ? "s" : ""}</span><Badge status={mission.status} /><Icon name="arrow" size={15} /></Link>) : <EmptyState title="Votre prochaine mission commence ici">Publiez votre première mission pour recevoir des candidatures.</EmptyState>}</div>
+      </section>
+      <section className="rqd-glass rqd-list-card">
+        <header><div><SoftIcon name="people" size={20} /><h2>Dernières candidatures</h2></div><Link href="/recruteur/candidatures">Voir tout <Icon name="arrow" size={14} /></Link></header>
+        <div className="rqd-rows">{recent.length ? recent.slice(0, 4).map(application => <div className="rqd-candidate-row" key={application.id}><Avatar name={`${application.worker.firstName} ${application.worker.name}`} /><div><strong>{application.worker.firstName} {application.worker.name}</strong><small>{application.mission.title}</small></div><Badge status={application.status} application /><Link className="rqd-profile-link" href={`/recruteur/candidatures/${application.id}`} aria-label={`Voir le profil de ${application.worker.firstName}`}><Icon name="arrow" size={16} /></Link></div>) : <EmptyState icon="people" title="Vos futurs talents sont en chemin">Les nouvelles candidatures apparaîtront ici.</EmptyState>}</div>
+      </section>
+    </div>
+
+    <div className="rqd-bottom-grid">
+      <section className="rqd-publish-banner"><div className="rqd-megaphone"><Icon name="plus" size={27} /></div><div><h2>Publiez une nouvelle mission !</h2><p>Trouvez rapidement le bon profil pour votre équipe.</p></div><PublishLink /></section>
+      <section className="rqd-glass rqd-upcoming-card"><header><div><SoftIcon name="calendar" tone="yellow" size={20} /><h2>Prochaines missions</h2></div></header>{upcoming.length ? <div className="rqd-upcoming-list">{upcoming.map(mission => <Link href={`/recruteur/missions/${mission.id}`} key={mission.id}><span className="rq-date-tile"><strong>{mission.date?.getUTCDate()}</strong>{mission.date?.toLocaleDateString("fr-FR", { month: "short", timeZone: "UTC" })}</span><div><strong>{mission.title}</strong><small>{mission.startTime || "—"} – {mission.endTime || "—"} · {mission.city || "Lieu à préciser"}</small></div><Icon name="arrow" size={15} /></Link>)}</div> : <p className="rqd-empty-line">Aucune mission planifiée pour le moment.</p>}</section>
+    </div>
+
+    <section className="rqd-quick-actions" aria-label="Actions rapides"><h2>Actions rapides</h2><div>{([ ["/recruteur/missions/nouvelle", "plus", "Publier une mission"], ["/recruteur/candidatures", "people", "Voir les candidatures"], ["/recruteur/travailleurs", "check", "Travailleurs sélectionnés"], ["/recruteur/missions", "briefcase", "Gérer mes missions"] ] as const).map(([href, icon, label]) => <Link href={href} key={href}><SoftIcon name={icon} size={19} /><span>{label}</span><Icon name="arrow" size={14} /></Link>)}</div></section>
+  </div>;
 }

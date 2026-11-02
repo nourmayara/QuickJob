@@ -14,7 +14,7 @@ export default function ApplyForm({ missionId }: { missionId: number }) {
       const response = await fetch(`/api/missions/${missionId}/applications`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input.data) });
       const data = await response.json();
       if (!response.ok) { setError(data.error || "Candidature impossible"); router.refresh(); return; }
-      router.push(`/dashboard/travailleur/candidatures/${data.id}`); router.refresh();
+      router.push(`/dashboard/travailleur/candidatures/${data.id}`);
     } catch { setError("Connexion au serveur impossible. Réessayez."); }
     finally { setPending(false); }
   }

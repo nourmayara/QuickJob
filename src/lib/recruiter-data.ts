@@ -4,7 +4,7 @@ import prisma from "./prisma";
 import { requirePageRole } from "./authorization";
 
 export const missionInclude = { _count: { select: { applications: true } }, applications: { where: { status: "ACCEPTED" }, select: { id: true } } } as const;
-export const workerSelect = { id: true, firstName: true, name: true, city: true, skills: true, bio: true, experience: true, languages: true } as const;
+export const workerSelect = { id: true, firstName: true, name: true, city: true, avatarUrl: true, skills: true, bio: true, experience: true, languages: true } as const;
 export async function ownedMission(value: string) {
   const user = await requirePageRole(["RECRUTEUR"]);
   const id = Number(value);

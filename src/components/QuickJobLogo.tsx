@@ -1,4 +1,6 @@
 import Image from "next/image";
+import logo from "../../public/images/quickjob-logo-v2.png";
+import styles from "./QuickJobLogo.module.css";
 
 type QuickJobLogoProps = {
   className?: string;
@@ -7,11 +9,11 @@ type QuickJobLogoProps = {
 
 export default function QuickJobLogo({ className = "", priority = false }: QuickJobLogoProps) {
   return <Image
-    src="/images/quickjob-logo.png"
+    src={logo}
     alt="QuickJob"
-    width={1944}
-    height={809}
     priority={priority}
-    className={`quickjob-logo ${className}`.trim()}
+    sizes="(max-width: 700px) 132px, 190px"
+    style={{ objectFit: "contain", maxWidth: "100%", filter: "none", background: "transparent" }}
+    className={`${styles.logo} quickjob-logo ${className}`.trim()}
   />;
 }
