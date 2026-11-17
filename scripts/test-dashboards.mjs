@@ -49,8 +49,9 @@ async function adminCheck(admin) {
   }
   check(stats.reports.available === true && stats.reports.total === await db.report.count(), "Reporting count matches the real source");
   const page = await html("/dashboard/administrateur", admin);
-  kpi(page, "users", stats.users); kpi(page, "missions", stats.missions); kpi(page, "applications", stats.applications); kpi(page, "reports", stats.reports.total);
-  for (const role of ["TRAVAILLEUR", "RECRUTEUR", "ADMIN"]) kpi(page, `role-${role}`, await db.user.count({ where: { role } }));
+  kpi(page, "users", stats.users); kpi(page, "missions", stats.missions); kpi(page, "applications", stats.applications); kpi(page, "reports", stats.reports.processedRate);
+  for (const role of ["TRAVAILLEUR", "RECRUTEUR"]) kpi(page, `role-${role}`, await db.user.count({ where: { role } }));
+  check(!page.includes('data-kpi="role-ADMIN"'), "Administrators are excluded from the user distribution chart");
   return stats;
 }
 async function recruiterCheck(actor) {

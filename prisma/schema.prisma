@@ -80,6 +80,7 @@ model Notification {
   verification   RecruiterVerification? @relation(fields: [verificationId], references: [userId], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([userId, readAt, createdAt])
 }
 
 model Session {

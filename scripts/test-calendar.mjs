@@ -75,7 +75,9 @@ try {
     await browser.cdp("Emulation.setTimezoneOverride", { timezoneId: "America/New_York" });
     await browser.go("/dashboard/travailleur/calendrier?month=2036-01");
     check(await browser.evaluate("document.querySelectorAll('.wk-calendar-event.accepted').length >= 3 && document.querySelectorAll('.wk-calendar-event.pending').length >= 2"), "Blue pending and purple accepted events");
-    await browser.evaluate("(() => { const values={date:'2036-01-20',startTime:'08:00',endTime:'10:00',kind:'AVAILABLE',note:'Créneau navigateur'}; for(const [key,value] of Object.entries(values)) document.querySelector('form [name='+key+']').value=value; document.querySelector('.rq-form .rq-form-actions button:not([type=button])').click(); })()");
+    await browser.evaluate("[...document.querySelectorAll('button')].find(button => button.textContent.includes('Déclarer un créneau')).click()");
+    await browser.until("!!document.querySelector('[role=dialog]')");
+    await browser.evaluate("(() => { const form=document.querySelector('[role=dialog] form'); const values={date:'2036-01-20',startTime:'08:00',endTime:'10:00',kind:'AVAILABLE',note:'Créneau navigateur'}; for(const [key,value] of Object.entries(values)) form.querySelector('[name='+key+']').value=value; form.querySelector('button:not([type=button])').click(); })()");
     await browser.until("!!document.querySelector('.rq-success') && [...document.querySelectorAll('.wk-calendar-day .available')].some(e=>e.textContent.includes('08:00'))");
     const bs = await db.availability.findFirstOrThrow({ where: { workerId: a.id, note: "Créneau navigateur" } });
     check(bs.startAt.toISOString() === "2036-01-20T07:00:00.000Z", "Browser timezone does not shift Tunis time");

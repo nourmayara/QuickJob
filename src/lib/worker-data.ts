@@ -9,6 +9,7 @@ export function visibleWorkerMission(workerId: number): Prisma.MissionWhereInput
 export function workerMissionInclude(workerId: number) {
   return {
     favorites: { where: { workerId }, select: { id: true } },
+    requiredSkills: { select: { required: true, skill: { select: { key: true, name: true } } } },
     recruiter: { select: { firstName: true, name: true, companyName: true, sector: true } },
     _count: { select: { applications: { where: { status: "ACCEPTED" } } } },
     applications: { where: { workerId }, select: { id: true, status: true, message: true, createdAt: true } },

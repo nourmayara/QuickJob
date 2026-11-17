@@ -3,6 +3,7 @@ import { cache } from "react";
 import { createHash, randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { COOKIE_NAME, MAX_AGE, signToken, verifyToken } from "./token";
+import { publicUserSelect } from "./auth-user";
 
 export async function createSession(userId: number) {
   const sessionId = randomUUID();
@@ -22,13 +23,11 @@ export const getSession = cache(async () => {
   if (!token) return null;
   const payload = await verifyToken(token);
   if (!payload) return null;
-  const user = await prisma.user.findUnique({where:{id:payload.userId},select:{suspended:true}});
-  if (!user || user.suspended) return null;
   const id = payload.sessionId ?? createHash("sha256").update(token).digest("hex");
   const session = payload.sessionId
-    ? await prisma.session.findUnique({where:{id}})
-    : await prisma.session.upsert({where:{id}, update:{}, create:{id,userId:payload.userId,expiresAt:new Date(payload.exp*1000)}});
-  return session && session.userId === payload.userId && session.expiresAt > new Date() ? {userId:session.userId} : null;
+    ? await prisma.session.findUnique({where:{id},select:{userId:true,expiresAt:true,user:{select:publicUserSelect}}})
+    : await prisma.session.upsert({where:{id}, update:{}, create:{id,userId:payload.userId,expiresAt:new Date(payload.exp*1000)},select:{userId:true,expiresAt:true,user:{select:publicUserSelect}}});
+  return session && session.userId === payload.userId && !session.user.suspended && session.expiresAt > new Date() ? session.user : null;
 });
 
 export async function destroySession() {

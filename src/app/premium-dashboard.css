@@ -273,6 +273,13 @@ body.qj-clay .rq-app.qj-admin-shell .qj-admin-emblem .qj-soft-icon{width:58px;he
 body.qj-clay .rq-app.qj-platform-shell :is(.rq-panel,.rq-stat,.rq-quick,.wk-mission-card,.qa-table,.qj-message,.qj-notifications li){backdrop-filter:blur(12px)}
 body.qj-clay .rq-app.qj-platform-shell .rq-page-heading{background:radial-gradient(circle at 92% 8%,#fff2c981,transparent 35%),var(--qj-glass)}
 body.qj-clay .rq-app.qj-platform-shell .rq-page-heading::before{content:"";position:absolute;left:0;top:22%;bottom:22%;width:4px;border-radius:0 5px 5px 0;background:linear-gradient(#3478f6,#2455d9);box-shadow:0 0 12px #3478f677}
+/* Compact page titles replace the former full-width banner on every dashboard route. */
+body.qj-clay .rq-app.qj-platform-shell .rq-page-heading{min-height:0;margin:0 0 15px;padding:2px 3px;border:0;border-radius:0;background:transparent!important;box-shadow:none;overflow:visible}
+body.qj-clay .rq-app.qj-platform-shell .rq-page-heading::before{content:none}
+body.qj-clay .rq-app.qj-platform-shell .rq-page-heading h1{gap:8px;font-size:21px}
+body.qj-clay .rq-app.qj-platform-shell .rq-page-heading .qj-heading-icon{width:31px;height:31px;border-radius:10px}
+body.qj-clay .rq-app.qj-platform-shell .rq-page-heading :is(.rq-eyebrow,p:not(.rq-eyebrow)){display:none}
+@media(max-width:760px){body.qj-clay .rq-app.qj-platform-shell .rq-page-heading{padding:0;background:transparent!important}body.qj-clay .rq-app.qj-platform-shell .rq-page-heading h1{font-size:19px}body.qj-clay .rq-app.qj-platform-shell .rq-page-heading .qj-heading-icon{width:29px;height:29px}}
 @media(max-width:1200px){body.qj-clay .rq-app.qj-platform-shell .rq-sidebar{width:232px}body.qj-clay .rq-app.qj-platform-shell .rq-workspace{margin-left:232px}body.qj-clay .rq-app.qj-platform-shell .qj-sidebar-character{left:27px;width:170px}}
 @media(max-height:850px) and (min-width:761px){body.qj-clay .rq-app.qj-platform-shell .qj-sidebar-character{display:none}body.qj-clay .rq-app.qj-worker-shell .wk-sidebar-tip{display:block}body.qj-clay .rq-app.qj-platform-shell .rq-nav-link{min-height:37px;padding-block:7px}}
 @media(max-width:760px){body.qj-clay .rq-app.qj-platform-shell .rq-sidebar{width:min(290px,88vw);border-radius:0 26px 26px 0;overflow-y:auto}body.qj-clay .rq-app.qj-platform-shell .rq-workspace{margin-left:0}body.qj-clay .rq-app.qj-platform-shell .qj-sidebar-character,body.qj-clay .rq-app.qj-platform-shell .qj-admin-emblem{display:none}body.qj-clay .rq-app.qj-worker-shell .wk-sidebar-tip{display:block}}

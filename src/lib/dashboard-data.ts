@@ -5,6 +5,7 @@ import { localParts, scheduleInstant } from "./schedule-time";
 import { activeScheduleStatuses } from "./schedule-service";
 import { publishedMissionWhere, workerMissionInclude } from "./worker-data";
 import { missionInclude, workerSelect } from "./recruiter-data";
+import { aggregateMissionsByGovernorate } from "./tunisia-geography";
 
 export function upcomingMissionWhere(now = new Date()): Prisma.MissionWhereInput {
   const { date, time } = localParts(now);
@@ -96,7 +97,7 @@ export async function adminDashboardData(now = new Date()) {
       tx.application.groupBy({ by: ["status"], _count: { _all: true }, orderBy: { status: "asc" } }),
       tx.user.count({ where: { suspended: true } }),
       tx.mission.groupBy({ by: ["category"], _count: { _all: true }, orderBy: [{ _count: { id: "desc" } }, { category: "asc" }], take: 10 }),
-      tx.mission.groupBy({ by: ["city"], _count: { _all: true }, orderBy: [{ _count: { id: "desc" } }, { city: "asc" }], take: 10 }),
+      tx.mission.groupBy({ by: ["city"], _count: { _all: true }, orderBy: [{ _count: { id: "desc" } }, { city: "asc" }] }),
       tx.user.findMany({ where: { createdAt: { gte: months[0].start, lt: now } }, select: { createdAt: true } }),
       tx.report.groupBy({by:["status"],_count:{_all:true}}),
       tx.recruiterVerification.count({where:{status:"EN_ATTENTE",user:{role:"RECRUTEUR"}}}),
@@ -105,12 +106,18 @@ export async function adminDashboardData(now = new Date()) {
     const missions = missionsByStatus.reduce((sum, g) => sum + g._count._all, 0);
     const applications = applicationsByStatus.reduce((sum, g) => sum + g._count._all, 0);
     const statusCount = (status: string) => missionsByStatus.find(g => g.status === status)?._count._all || 0;
+    const geography = aggregateMissionsByGovernorate(locations.map(group => ({ city: group.city, count: group._count._all })));
     return { users, missions, applications, suspended,
       usersByRole: usersByRole.map(g => ({ role: g.role, count: g._count._all })),
       missionsByStatus: missionsByStatus.map(g => ({ status: g.status, count: g._count._all })),
       applicationsByStatus: applicationsByStatus.map(g => ({ status: g.status, count: g._count._all })),
       pendingRecruiters,
-      reports: { available: true, total: reportGroups.reduce((n,g)=>n+g._count._all,0), byStatus:reportGroups.map(g=>({status:g.status,count:g._count._all})), explanation: "Tous les signalements enregistrés, y compris les dossiers traités." },
+      geography,
+      reports: (() => {
+        const total = reportGroups.reduce((sum, group) => sum + group._count._all, 0);
+        const processed = reportGroups.reduce((sum, group) => sum + (["RESOLU", "REJETE"].includes(group.status) ? group._count._all : 0), 0);
+        return { available: true, total, processed, processedRate: total ? Math.round((processed / total) * 100) : 0, byStatus: reportGroups.map(group => ({ status: group.status, count: group._count._all })), explanation: "Part des signalements ayant reçu une décision finale." };
+      })(),
       charts: { registrations: months.map(m => ({ key: m.key, label: m.label, value: registrations.filter(user => user.createdAt >= m.start && user.createdAt < m.end).length })),
         categories: distribution(categories.map(g => ({ label: g.category, count: g._count._all })), missions, "Autres catégories"),
         locations: distribution(locations.map(g => ({ label: g.city, count: g._count._all })), missions, "Autres villes"),

@@ -12,7 +12,9 @@ async function api(route, expected, actor, method = "GET", body) {
 }
 async function account(name, role) {
   const response = await api("/api/auth/register", 201, null, "POST", { name: "Recette", firstName: name, phone: "+216 12345678", email: `${prefix}${name}@example.invalid`, password: "test-password123", confirmPassword: "test-password123", acceptTerms: true, role, ...(role === "RECRUTEUR" ? { recruiterType: "INDIVIDUAL" } : {}) });
-  const actor = { ...await response.json(), cookie: response.headers.get("set-cookie").split(";")[0] }; users.push(actor); return actor;
+  const actor = { ...await response.json(), cookie: response.headers.get("set-cookie").split(";")[0] }; users.push(actor);
+  if (role === "RECRUTEUR") await db.recruiterVerification.update({ where: { userId: actor.id }, data: { status: "APPROUVE" } });
+  return actor;
 }
 try {
   const recruiter = await account("Recruteur", "RECRUTEUR");
@@ -28,7 +30,7 @@ try {
   for (const worker of [b, c]) await api("/api/travailleur/profil", 200, worker, "PATCH", profile);
   await browser.go("/dashboard/travailleur/missions");
   await browser.evaluate(`(() => { const values={q:${JSON.stringify(prefix)},city:'Tunis',category:'Restauration',date:'2030-12-15',payMin:'80',payMax:'100'}; for(const [name,value] of Object.entries(values)) document.querySelector('form [name='+name+']').value=value; document.querySelector('form button').click(); })()`);
-  await browser.until(`new URLSearchParams(location.search).get('q') === ${JSON.stringify(prefix)} && document.querySelectorAll('.wk-mission-card').length === 1`);
+  await browser.until(`new URLSearchParams(location.search).get('q') === ${JSON.stringify(prefix)} && document.querySelectorAll('.wk-compact-mission-card').length === 1`);
   for (const [width, height, name] of [[1440, 1000, "desktop"], [900, 1000, "tablet"], [390, 844, "mobile"]]) {
     await browser.cdp("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: width < 760 });
     if (width < 760) await browser.until("document.querySelector('.rq-sidebar').getBoundingClientRect().right <= 1");
@@ -38,6 +40,12 @@ try {
   await browser.evaluate(`document.querySelector('a[href="/dashboard/travailleur/missions/${m.id}"]').click()`);
   await browser.until(`location.pathname === '/dashboard/travailleur/missions/${m.id}' && !!document.querySelector('.wk-apply-form')`);
   assert.equal(await browser.evaluate("document.querySelectorAll('.wk-apply-form').length"), 1);
+  for (const [width, height, name] of [[1440, 900, "desktop"], [390, 844, "mobile"]]) {
+    await browser.cdp("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: width < 760 });
+    if (width < 760) await browser.until("document.querySelector('.rq-sidebar').getBoundingClientRect().right <= 1");
+    assert.ok(await browser.evaluate("document.documentElement.scrollWidth <= innerWidth"), `mission detail ${name}: horizontal overflow`);
+    await browser.screenshot(`worker-mission-detail-${name}.png`);
+  }
   const message = "Je souhaite rejoindre votre équipe pour cette mission.";
   await browser.evaluate(`document.querySelector('.wk-apply-form textarea').value=${JSON.stringify(message)}; document.querySelector('.wk-apply-form button').click()`);
   await browser.until("!!document.querySelector('.rq-status-pending') && location.pathname.includes('/candidatures/')");

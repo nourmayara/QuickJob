@@ -10,7 +10,7 @@ import { publishedMissionWhere } from "./worker-data";
 export const adminUserSelect = { ...publicUserSelect, phone: true, companyName: true, city: true, sector: true, bio: true, address: true } as const;
 export async function listAdminUsers(input: z.infer<typeof usersFilter>) {
   const where: Prisma.UserWhereInput = { ...(input.role ? { role: input.role } : {}), ...(input.status ? { suspended: input.status === "SUSPENDU" } : {}), ...(input.q ? { OR: ["name", "firstName", "email", "companyName"].map(key => ({ [key]: { contains: input.q } })) } : {}) };
-  const [items, total] = await Promise.all([prisma.user.findMany({ where, select: adminUserSelect, orderBy: { id: "desc" }, take: 25, skip: (input.page - 1) * 25 }), prisma.user.count({ where })]);
+  const [items, total] = await Promise.all([prisma.user.findMany({ where, select: adminUserSelect, orderBy: { id: "desc" }, take: 10, skip: (input.page - 1) * 10 }), prisma.user.count({ where })]);
   return { items, total, page: input.page };
 }
 export async function setSuspension(adminId: number, id: number, suspended: boolean) {
@@ -27,7 +27,7 @@ export async function setSuspension(adminId: number, id: number, suspended: bool
 }
 export async function listAdminMissions(input: z.infer<typeof missionsFilter>) {
   const where: Prisma.MissionWhereInput = { ...(input.status ? { status: input.status } : {}), ...(input.q ? { OR: [{ title: { contains: input.q } }, { city: { contains: input.q } }, { recruiter: { companyName: { contains: input.q } } }] } : {}) };
-  const [items, total] = await Promise.all([prisma.mission.findMany({ where, include: { recruiter: { select: { id: true, name: true, firstName: true, companyName: true } }, _count: { select: { applications: true } } }, orderBy: { id: "desc" }, take: 25, skip: (input.page - 1) * 25 }), prisma.mission.count({ where })]);
+  const [items, total] = await Promise.all([prisma.mission.findMany({ where, include: { recruiter: { select: { id: true, name: true, firstName: true, companyName: true } }, _count: { select: { applications: true } } }, orderBy: { id: "desc" }, take: 10, skip: (input.page - 1) * 10 }), prisma.mission.count({ where })]);
   return { items, total, page: input.page };
 }
 export async function moderateMission(adminId: number, id: number, reason: string) {

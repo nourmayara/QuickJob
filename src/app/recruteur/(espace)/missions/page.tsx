@@ -28,16 +28,19 @@ export default async function MissionsPage({ searchParams }: { searchParams: Pro
     ...(category ? { category } : {}), ...(city ? { city } : {}),
   };
   const where: Prisma.MissionWhereInput = { ...filter, ...(status === "ACTIVE" ? { status: { in: activeScheduleStatuses } } : status ? { status } : {}) };
-  const [count, globalGroups, filteredGroups, categories, cities] = await prisma.$transaction(async tx => Promise.all([
+  const requestedPage = pageNumber(value(params.page));
+  const [[count, globalGroups, filteredGroups, categories, cities], missions] = await Promise.all([
+   prisma.$transaction(async tx => Promise.all([
     tx.mission.count({ where }),
     tx.mission.groupBy({ by: ["status"], where: scope, _count: { _all: true }, orderBy: { status: "asc" } }),
     tx.mission.groupBy({ by: ["status"], where: filter, _count: { _all: true }, orderBy: { status: "asc" } }),
     tx.mission.findMany({ where: { ...scope, category: { not: null } }, distinct: ["category"], select: { category: true }, orderBy: { category: "asc" } }),
     tx.mission.findMany({ where: { ...scope, city: { not: null } }, distinct: ["city"], select: { city: true }, orderBy: { city: "asc" } }),
-  ]));
+   ])),
+   prisma.mission.findMany({ where, include: missionInclude, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (requestedPage - 1) * 20, take: 20 }),
+  ]);
   const pages = Math.max(1, Math.ceil(count / 20));
-  const page = Math.min(pageNumber(value(params.page)), pages);
-  const missions = await prisma.mission.findMany({ where, include: missionInclude, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (page - 1) * 20, take: 20 });
+  const page = Math.min(requestedPage, pages);
   const groupCount = (groups: typeof globalGroups, status: string) => groups.reduce((n, g) => n + (!status || (status === "ACTIVE" ? activeScheduleStatuses.includes(g.status) : g.status === status) ? g._count._all : 0), 0);
   const href = (changes: Partial<Record<keyof Params, string>> = {}) => {
     const search = new URLSearchParams({ q: query, category, city, status, view, ...changes });
