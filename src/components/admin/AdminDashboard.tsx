@@ -40,6 +40,5 @@ export default async function AdminDashboard({ name }: { name: string }) {
       <Panel className="ad-panel" title="Candidatures par statut" action={<SoftIcon name="mail" />}><BarChart points={applicationPoints} vertical /></Panel>
       <Panel className="ad-panel" title="Activités récentes" action={<SoftIcon name="clock" />}><ol className="ad-timeline">{activity.map(a => <li key={a.id}><SoftIcon name={a.icon} size={22} /><div><Link href={a.href}>{a.title}</Link><p>{a.detail}</p><time dateTime={a.date.toISOString()}>{a.date.toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Tunis" })}</time></div></li>)}</ol>{!activity.length && <p className="ad-empty">Aucune activité enregistrée.</p>}</Panel>
     </div>
-    <Panel title="Actions rapides" className="ad-panel ad-actions"><Link className="rq-button" href="/admin/recruteurs"><SoftIcon name="shield" />Vérifier les recruteurs</Link><Link className="rq-button" href="/admin/categories"><SoftIcon name="grid" />Gérer les catégories</Link><Link className="rq-button" href="/admin/missions"><SoftIcon name="briefcase" />Consulter les missions</Link><Link className="rq-button" href="/admin/signalements"><SoftIcon name="pin" />Voir les signalements</Link></Panel>
   </div>;
 }

@@ -32,6 +32,7 @@ model User {
   email                 String                     @unique
   password              String
   createdAt             DateTime                   @default(now())
+  lastSeenAt            DateTime?
   recruiterVerification RecruiterVerification?     @relation("RecruiterVerificationOwner")
   recruiterDecisions    RecruiterVerification[]    @relation("RecruiterVerificationAdmin")
   notifications         Notification[]
@@ -49,6 +50,7 @@ model User {
   recommendationOptIn   Boolean                    @default(false)
 
   @@index([createdAt])
+  @@index([lastSeenAt])
 }
 
 model RecruiterVerification {
@@ -268,11 +270,31 @@ model Message {
   application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   senderId      Int
   sender        User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  body          String
+  body          String      @default("")
+  attachments   MessageAttachment[]
   createdAt     DateTime    @default(now())
   readAt        DateTime?
 
   @@index([applicationId, id])
+}
+
+model MessageAttachment {
+  id           Int      @id @default(autoincrement())
+  messageId    Int
+  message      Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  kind         String
+  name         String?
+  mimeType     String?
+  size         Int?
+  storageKey   String?
+  duration     Int?
+  latitude     Float?
+  longitude    Float?
+  contactName  String?
+  contactPhone String?
+  createdAt    DateTime @default(now())
+
+  @@index([messageId])
 }
 
 model Review {

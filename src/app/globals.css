@@ -9,27 +9,14 @@ input:not([type=checkbox]):not([type=radio]){width:100%;padding:12px;font-weight
 .button{display:inline-flex;justify-content:center;align-items:center;padding:12px 18px;font-size:14px;font-weight:600;cursor:pointer}
 button:disabled{opacity:.6;cursor:wait}
 
-/* Main viewport scrollbar only — Crystal Blue / Liquid Glass. */
-html{
-  scrollbar-width:thin;
-  scrollbar-color:rgba(31,105,225,.78) transparent;
+/* Hide scrollbar chrome everywhere without disabling scrolling. */
+*{
+  -ms-overflow-style:none!important;
+  scrollbar-width:none!important;
 }
-html::-webkit-scrollbar{width:8px;height:8px}
-html::-webkit-scrollbar-track{background:transparent}
-html::-webkit-scrollbar-thumb{
-  min-height:42px;
-  border:1px solid rgba(255,255,255,.42);
-  border-radius:999px;
-  background:
-    linear-gradient(90deg,rgba(255,255,255,.52) 0,rgba(255,255,255,.12) 28%,transparent 52%),
-    linear-gradient(180deg,rgba(126,203,255,.88) 0%,rgba(45,126,240,.9) 48%,rgba(13,68,190,.92) 100%);
-  background-clip:padding-box;
-  box-shadow:inset 1px 0 1px rgba(255,255,255,.56),0 2px 5px rgba(18,72,155,.25);
-}
-html::-webkit-scrollbar-thumb:hover{
-  background:
-    linear-gradient(90deg,rgba(255,255,255,.72) 0,rgba(255,255,255,.2) 32%,transparent 55%),
-    linear-gradient(180deg,rgba(148,216,255,.98) 0%,rgba(51,137,255,.98) 46%,rgba(8,62,194,.98) 100%);
-  background-clip:padding-box;
-  box-shadow:inset 1px 0 2px rgba(255,255,255,.78),0 2px 7px rgba(14,76,184,.34);
+*::-webkit-scrollbar{
+  display:none!important;
+  width:0!important;
+  height:0!important;
+  background:transparent!important;
 }

@@ -7,6 +7,7 @@ import QuickJobLogo from "@/components/QuickJobLogo";
 import LogoutButton from "@/components/LogoutButton";
 import Icon, { type IconName } from "@/components/recruiter/Icon";
 import Image from "next/image";
+import PresenceHeartbeat from "@/components/communication/PresenceHeartbeat";
 
 const base = "/dashboard/travailleur";
 const links: [string, string, IconName][] = [["", "Mon espace", "home"], ["missions", "Trouver une mission", "search"], ["calendrier", "Mon calendrier", "calendar"], ["candidatures", "Mes candidatures", "document"], ["favoris", "Mes favoris", "heart"], ["messages", "Messages", "message"], ["profil", "Mon profil professionnel", "user"]];
@@ -15,7 +16,7 @@ export default function WorkerShell({ children, name }: { children: React.ReactN
   const [open, setOpen] = useState(false);
   const active = (slug: string) => slug ? pathname.startsWith(`${base}/${slug}`) : pathname === base;
   const title = links.find(([slug]) => active(slug))?.[1] || "Espace travailleur";
-  return <div className="rq-app wk-app qj-platform-shell qj-worker-shell"><a href="#worker-content" className="rq-skip">Aller au contenu</a>{open && <button className="rq-overlay" aria-label="Fermer la navigation" onClick={() => setOpen(false)} />}
+  return <div className="rq-app wk-app qj-platform-shell qj-worker-shell"><PresenceHeartbeat /><a href="#worker-content" className="rq-skip">Aller au contenu</a>{open && <button className="rq-overlay" aria-label="Fermer la navigation" onClick={() => setOpen(false)} />}
     <aside className={`rq-sidebar ${open ? "is-open" : ""}`} aria-label="Espace travailleur"><div className="rq-brand"><Link href={base} onClick={() => setOpen(false)} aria-label="QuickJob, mon espace travailleur"><QuickJobLogo priority /></Link><button className="rq-mobile-close rq-icon-button" aria-label="Fermer la navigation" onClick={() => setOpen(false)}><Icon name="close" /></button></div><p className="rq-nav-label">ESPACE TRAVAILLEUR</p>
       <nav id="worker-navigation" aria-label="Navigation principale">{links.map(([slug, label, icon]) => <Link key={slug} href={`${base}${slug ? `/${slug}` : ""}`} className={`rq-nav-link ${active(slug) ? "is-active" : ""}`} aria-current={active(slug) ? "page" : undefined} onClick={() => setOpen(false)}><Icon name={icon} /><span>{label}</span>{active(slug) && <i />}</Link>)}</nav>
       <div className="wk-sidebar-tip"><Icon name="briefcase" size={23} /><strong>Une mission à votre rythme</strong><p>Présentez vos compétences et trouvez votre prochaine opportunité.</p><Link href={`${base}/profil`}>Compléter mon profil <Icon name="arrow" size={14} /></Link></div>

@@ -7,6 +7,8 @@ import Link from "next/link";
 import { EmptyState, PageHeading } from "@/components/recruiter/ui";
 import MissionCard from "@/components/worker/MissionCard";
 import { recommendMissionsForWorker } from "@/lib/matching-service";
+import AutoFilterForm from "@/components/filters/AutoFilterForm";
+import Icon from "@/components/recruiter/Icon";
 import "./missions-marketplace.css";
 
 export default async function WorkerMissionsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -30,16 +32,16 @@ export default async function WorkerMissionsPage({ searchParams }: { searchParam
       <Link href="/dashboard/travailleur/missions" aria-current={tab === "all" ? "page" : undefined}>Toutes les missions</Link>
       <Link href="?tab=recommended" aria-current={tab === "recommended" ? "page" : undefined}>Recommandées pour vous</Link>
     </nav>
-    {tab === "all" ? <div className="wk-marketplace">
-      <aside className="wk-marketplace-filters" aria-label="Filtres de recherche">
-        <form key={JSON.stringify(input)} method="GET" className="wk-search rq-panel">
-          <div className="wk-search-intro"><span>01 / EXPLORER</span><h2>Affinez votre recherche</h2><p>La bonne mission est peut-être tout près.</p></div>
-          <div className="wk-search-main"><label className="rq-field">Recherche<input name="q" defaultValue={input.q} maxLength={160} placeholder="Un titre, un mot-clé…" /></label><label className="rq-field">Ville<input name="city" defaultValue={input.city} maxLength={100} placeholder="Toutes les villes" /></label></div>
-          <div className="wk-search-filters"><label className="rq-field">Catégorie<select name="category" defaultValue={input.category}><option value="">Toutes les catégories</option>{categories.map(c => <option key={c}>{c}</option>)}</select></label><label className="rq-field">Date de mission<input name="date" type="date" defaultValue={input.date} /></label><label className="rq-field">Minimum (TND)<input name="payMin" type="number" min={0} max={1000000} step="0.001" defaultValue={input.payMin ?? ""} placeholder="Sans minimum" /></label><label className="rq-field">Maximum (TND)<input name="payMax" type="number" min={0} max={1000000} step="0.001" defaultValue={input.payMax ?? ""} placeholder="Sans maximum" /></label></div>
-          <div className="wk-search-actions"><button className="rq-button rq-primary">Rechercher</button><Link href="/dashboard/travailleur/missions" className="rq-link">Réinitialiser les filtres</Link></div>
-          <p className="rq-subtle">Rémunération totale par travailleur et par mission. Horaires en Tunisie.</p>
-        </form>
-      </aside>
+    {tab === "all" ? <div className="wk-marketplace wk-marketplace-unified">
+      <AutoFilterForm key={JSON.stringify(input)} resetHref="/dashboard/travailleur/missions" ariaLabel="Filtrer les missions disponibles">
+        <label className="qj-filter-field qj-filter-search"><span>Recherche</span><div><Icon name="search" size={18}/><input type="search" name="q" defaultValue={input.q} maxLength={160} placeholder="Un titre, un mot-clé…" /></div></label>
+        <label className="qj-filter-field"><span>Ville</span><input name="city" defaultValue={input.city} maxLength={100} placeholder="Toutes les villes" /></label>
+        <label className="qj-filter-field"><span>Catégorie</span><select name="category" defaultValue={input.category}><option value="">Toutes les catégories</option>{categories.map(c => <option key={c}>{c}</option>)}</select></label>
+        <label className="qj-filter-field"><span>Date de mission</span><input name="date" type="date" defaultValue={input.date} /></label>
+        <label className="qj-filter-field"><span>Minimum (TND)</span><input name="payMin" type="number" min={0} max={1000000} step="0.001" defaultValue={input.payMin ?? ""} placeholder="Sans minimum" /></label>
+        <label className="qj-filter-field"><span>Maximum (TND)</span><input name="payMax" type="number" min={0} max={1000000} step="0.001" defaultValue={input.payMax ?? ""} placeholder="Sans maximum" /></label>
+        <p className="qj-filter-note">Rémunération totale par travailleur et par mission. Horaires en Tunisie.</p>
+      </AutoFilterForm>
       <section className="wk-marketplace-results" aria-label="Missions disponibles">
         {!parsed.success && <p className="rq-error" role="alert">{parsed.error.issues[0].message}</p>}
         <div className="wk-marketplace-count"><span>QUICKJOB / OPPORTUNITÉS</span><strong>{count} mission{count > 1 ? "s" : ""} disponible{count > 1 ? "s" : ""}</strong></div>

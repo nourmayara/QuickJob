@@ -13,6 +13,14 @@ async function call(path, code, actor, method = "GET", body) {
   if (response.headers.get("content-type")?.includes("application/json")) check(!/"(?:password|sessions|token)"\s*:/.test(text), "No secrets");
   return response;
 }
+async function multipart(path, code, actor, entries) {
+  const data = new FormData();
+  for (const [key, value] of entries) data.append(key, value);
+  const response = await fetch(base + path, { method: "POST", redirect: "manual", headers: { Cookie: actor.cookie }, body: data });
+  const text = await response.clone().text();
+  check(response.status === code, `POST multipart ${path}: ${response.status}, expected ${code}: ${text.slice(0, 250)}`);
+  return response;
+}
 async function account(label, role, approved = true) {
   const response = await call("/api/auth/register", 201, null, "POST", { name: "Recette", firstName: label, email: `${prefix}${label}@example.invalid`, phone: "+216 12345678", password: "test-password123", confirmPassword: "test-password123", acceptTerms: true, role, ...(role === "RECRUTEUR" ? { recruiterType: "INDIVIDUAL" } : {}) });
   const actor = { ...await response.json(), cookie: response.headers.get("set-cookie").split(";")[0] }; users.push(actor);
@@ -69,6 +77,16 @@ try {
   const history = (await (await call(messages(app), 200, a)).json()).messages;
   check(history.length === 2 && history[0].id === first.id && history[1].id === second.id, "Chronological persistent history");
   await call(messages(app), 200, a, "PATCH", { ids: [second.id] });
+  await multipart(messages(app), 415, a, [["files", new File(["interdit"], "script.txt", { type: "text/plain" })]]);
+  const rich = await (await multipart(messages(app), 201, a, [["body", "Photo et lien https://quickjob.tn"], ["files", new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])], "preuve.png", { type: "image/png" })]])).json();
+  check(rich.attachments.length === 1 && rich.attachments[0].kind === "IMAGE" && !JSON.stringify(rich).includes("storageKey"), "Rich image message stored without exposing storage path");
+  const asset = `/api/messages/${rich.id}/attachments/${rich.attachments[0].id}`;
+  check((await fetch(base + asset, { headers: { Cookie: a.cookie } })).status === 200, "Participant can open a private attachment");
+  check((await fetch(base + asset, { headers: { Cookie: outsider.cookie } })).status === 404, "Non-participant cannot open a private attachment");
+  const place = await (await multipart(messages(app), 201, r, [["share", JSON.stringify({ kind: "LOCATION", latitude: 36.8065, longitude: 10.1815 })]])).json();
+  check(place.attachments[0].kind === "LOCATION" && place.attachments[0].latitude === 36.8065, "Geographic location message stored");
+  const contact = await (await multipart(messages(app), 201, r, [["share", JSON.stringify({ kind: "CONTACT", contactName: "Accueil QuickJob", contactPhone: "+216 12 345 678" })]])).json();
+  check(contact.attachments[0].kind === "CONTACT" && contact.attachments[0].contactPhone.includes("216"), "Contact message stored");
   await call(reviews(app), 409, a, "POST", review);
   await finish(r, m);
   await call(reviews(app), 409, a, "POST", review); // Status alone cannot bypass the actual scheduled end.
@@ -97,15 +115,43 @@ try {
     check(await browser.evaluate("document.body.textContent.includes('Aucune notification')"), "Empty notifications UI");
     await browser.cookie(a.cookie); await browser.go(`/dashboard/travailleur/messages?application=${app.id}`);
     check(await browser.evaluate("document.body.textContent.includes('Rendez-vous à l’accueil.')"), "Reloaded message history UI");
-    await browser.evaluate("document.querySelector('.qj-message-form textarea').value='Message navigateur'; document.querySelector('.qj-message-form button').click()");
+    check(await browser.evaluate("!!document.querySelector('.qj-conversation-search') && !!document.querySelector('.qj-conversation-list a[aria-current=page]') && ![...document.querySelectorAll('button')].some(button=>button.textContent.includes('Actualiser les messages'))"), "Premium conversation list, active thread and automatic refresh UI");
+    await browser.evaluate("document.querySelector('.qj-message-form textarea').focus()");
+    await browser.cdp("Input.insertText", { text: "Ligne 1" });
+    await browser.cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", text: "\r", modifiers: 8, windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13 });
+    await browser.cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", modifiers: 8, windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13 });
+    await browser.cdp("Input.insertText", { text: "Ligne 2" });
+    check(await browser.evaluate("document.querySelector('.qj-message-form textarea').value.includes('\\n') && !document.querySelector('.qj-message-history').textContent.includes('Ligne 2')"), "Shift+Enter inserts a line break without sending");
+    await browser.evaluate("document.querySelector('.qj-message-form textarea').value=''; document.querySelector('.qj-message-form textarea').focus()");
+    await browser.cdp("Input.insertText", { text: "Message navigateur" });
+    await browser.cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13 });
+    await browser.cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13 });
     await browser.until("document.querySelector('.qj-message-history').textContent.includes('Message navigateur')");
+    check(true, "Enter sends the message without a search or refresh button");
+    await browser.evaluate("window.__quickjobMessengerMarker='preserved'");
+    await call(messages(app), 201, r, "POST", { body: "Synchronisation automatique" });
+    await browser.until("document.querySelector('.qj-message-history').textContent.includes('Synchronisation automatique')");
+    check(await browser.evaluate("window.__quickjobMessengerMarker==='preserved'"), "Incoming messages synchronize without reloading the page");
+    await browser.until("document.querySelector('.qj-message-history').scrollHeight-document.querySelector('.qj-message-history').scrollTop-document.querySelector('.qj-message-history').clientHeight<100");
+    check((await db.message.findFirstOrThrow({ where: { applicationId: app.id, body: "Synchronisation automatique" } })).readAt !== null, "Automatic synchronization updates unread state");
+    await call(messages(nextApp), 201, r, "POST", { body: "Nouveau message non lu" });
+    await browser.until(`!![...document.querySelectorAll('.qj-conversation-list a')].find(link=>link.textContent.includes(${JSON.stringify(next.title)}))?.querySelector('.qj-unread-badge')`);
+    check(true, "Unread conversation badge updates automatically");
+    await browser.evaluate("document.querySelector('.qj-conversation-search input').focus()");
+    await browser.cdp("Input.insertText", { text: "Deuxième mission" });
+    await browser.until("document.querySelectorAll('.qj-conversation-list a').length===1");
+    check(true, "Conversation search filters dynamically");
+    for (let attempt = 0; attempt < 20 && !(await db.user.findUniqueOrThrow({ where: { id: a.id } })).lastSeenAt; attempt++) await new Promise(resolve => setTimeout(resolve, 150));
+    check(!!(await db.user.findUniqueOrThrow({ where: { id: a.id } })).lastSeenAt, "Authenticated heartbeat persists real presence");
     await browser.cookie(r.cookie); await browser.go(`/recruteur/messages?application=${app.id}`);
     check(await browser.evaluate("document.querySelector('.qj-message-history').textContent.includes('Message navigateur')"), "Recruiter receives browser message");
+    check(await browser.evaluate("document.querySelector('.qj-thread-header').textContent.includes('En ligne')"), "Recent worker heartbeat is displayed as online");
     await browser.until("!document.querySelector('[role=alert]')");
     for (const width of [1440, 900, 390]) {
       await browser.cdp("Emulation.setDeviceMetricsOverride", { width, height: 1000, deviceScaleFactor: 1, mobile: width < 760 });
       if (width < 760) await browser.until("document.querySelector('.rq-sidebar').getBoundingClientRect().right <= 1");
       check(await browser.evaluate("document.documentElement.scrollWidth <= innerWidth"), `Responsive messages ${width}`);
+      check(await browser.evaluate("(()=>{const thread=document.querySelector('.qj-thread').getBoundingClientRect(),composer=document.querySelector('.qj-composer-wrap').getBoundingClientRect(),history=document.querySelector('.qj-message-history').getBoundingClientRect();return Math.abs(thread.bottom-composer.bottom)<2&&history.bottom<=composer.top+1&&getComputedStyle(document.querySelector('.qj-message-history')).overflowY==='auto'})()"), `Composer fixed at thread bottom ${width}`);
     }
     await browser.cookie(a.cookie); await browser.go("/dashboard/travailleur/notifications");
     await browser.evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent==='Tout marquer comme lu').click()");

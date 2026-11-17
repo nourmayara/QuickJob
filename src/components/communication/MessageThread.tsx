@@ -1,48 +1,19 @@
 "use client";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/recruiter/Icon";
-type Message = { id: number; senderId: number; body: string; createdAt: string; readAt: string | null };
-export default function MessageThread({ applicationId, userId, initialMessages, initialHasOlder }: { applicationId: number; userId: number; initialMessages: Message[]; initialHasOlder: boolean }) {
-  const router = useRouter();
-  const [messages, setMessages] = useState<Message[]>(initialMessages), [hasOlder, setHasOlder] = useState(initialHasOlder), [loading, setLoading] = useState(false), [pending, setPending] = useState(false), [error, setError] = useState("");
-  const endpoint = `/api/applications/${applicationId}/messages`;
-  const load = useCallback(async (before?: number) => {
-    setLoading(true);
-    try {
-      const response = await fetch(endpoint + (before ? `?before=${before}` : ""), { cache: "no-store" });
-      const data = await response.json();
-      if (!response.ok) { setError(data.error || "Lecture impossible"); return; }
-      setMessages(previous => before ? [...data.messages, ...previous] : data.messages); setHasOlder(data.hasOlder);
-      const ids = (data.messages as Message[]).filter(m => m.senderId !== userId && !m.readAt).map(m => m.id);
-      if (ids.length) {
-        const marked = await fetch(endpoint, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) });
-        if (!marked.ok) setError("Impossible de mettre à jour l’état de lecture. Actualisez la conversation.");
-        else router.refresh();
-      }
-    } catch { setError("Connexion au serveur impossible"); }
-    finally { setLoading(false); }
-  }, [endpoint, userId, router]);
-  useEffect(() => {
-    const ids = initialMessages.filter(m => m.senderId !== userId && !m.readAt).map(m => m.id);
-    if (!ids.length) return;
-    const controller = new AbortController();
-    void fetch(endpoint, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }), signal: controller.signal }).then(response => {
-      if (response.ok) router.refresh(); else setError("Impossible de mettre à jour l’état de lecture");
-    }).catch(() => { if (!controller.signal.aborted) setError("Connexion au serveur impossible"); });
-    return () => controller.abort();
-  }, [initialMessages, userId, endpoint, router]);
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); if (pending) return;
-    const form = event.currentTarget, body = String(new FormData(form).get("body") || "");
-    setPending(true); setError("");
-    try {
-      const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body }) });
-      const result = await response.json();
-      if (!response.ok) { setError(result.error || "Envoi impossible"); return; }
-      form.reset(); await load();
-    } catch { setError("Connexion au serveur impossible"); }
-    finally { setPending(false); }
-  }
-  return <div className="rq-detail"><button className="rq-button" type="button" disabled={loading || pending} onClick={() => { setError(""); void load(); }}>Actualiser les messages</button>{error && <p role="alert" className="rq-error">{error}</p>}{loading ? <p role="status">Chargement des messages…</p> : <>{hasOlder && <button className="rq-button" type="button" onClick={() => void load(messages[0]?.id)}>Charger les messages précédents</button>}<ol className="qj-message-history" aria-label="Historique de la conversation">{messages.map(m => <li key={m.id} className={m.senderId === userId ? "qj-message is-own" : "qj-message"}><strong>{m.senderId === userId ? "Vous" : "Votre interlocuteur"}</strong><p>{m.body}</p><small><time dateTime={m.createdAt}>{new Date(m.createdAt).toLocaleString("fr-FR", { timeZone: "Africa/Tunis" })}</time> · Tunisie{m.senderId === userId && ` · ${m.readAt ? "Lu" : "Envoyé"}`}</small></li>)}</ol>{messages.length === 0 && <p className="rq-notice">Aucun message pour cette mission. Commencez la conversation.</p>}<form onSubmit={submit} className="qj-message-form" aria-busy={pending}><label className="rq-field">Votre message<textarea name="body" required maxLength={4000} rows={4} disabled={pending} /></label><button className="rq-button rq-primary" disabled={pending}><Icon name="send" size={17} />{pending ? "Envoi…" : "Envoyer le message"}</button></form></>}</div>;
+import { ConversationAvatar, isRecentlyOnline } from "./ConversationList";
+import MessageContent, { type Attachment } from "./MessageContent";
+import MessageComposer from "./MessageComposer";
+type Message={id:number;senderId:number;body:string;createdAt:string;readAt:string|null;attachments:Attachment[]}; type Person={name:string;missionTitle:string;avatarUrl:string|null;lastSeenAt:string|null};
+function mergeMessages(current:Message[],incoming:Message[]){const merged=new Map(current.map(item=>[item.id,item]));incoming.forEach(item=>merged.set(item.id,item));return [...merged.values()].sort((a,b)=>a.id-b.id)}
+function messageTime(value:string){return new Date(value).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit",timeZone:"Africa/Tunis"})}
+export default function MessageThread({applicationId,userId,initialMessages,initialHasOlder,person,base}:{applicationId:number;userId:number;initialMessages:Message[];initialHasOlder:boolean;person:Person;base:string}){
+ const router=useRouter(),historyRef=useRef<HTMLOListElement>(null),firstPaintRef=useRef(true),shouldStickRef=useRef(true),olderHeightRef=useRef<number|null>(null); const [messages,setMessages]=useState(initialMessages),[hasOlder,setHasOlder]=useState(initialHasOlder),[loadingOlder,setLoadingOlder]=useState(false),[error,setError]=useState(""),[now,setNow]=useState(()=>Date.now()); const endpoint=`/api/applications/${applicationId}/messages`;
+ const nearBottom=useCallback(()=>{const history=historyRef.current;return !history||history.scrollHeight-history.scrollTop-history.clientHeight<90},[]);
+ const markRead=useCallback(async(items:Message[])=>{const ids=items.filter(item=>item.senderId!==userId&&!item.readAt).map(item=>item.id);if(!ids.length)return;const response=await fetch(endpoint,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({ids})});if(!response.ok)throw new Error("read");const readAt=new Date().toISOString();setMessages(previous=>previous.map(item=>ids.includes(item.id)?{...item,readAt}:item));router.refresh()},[endpoint,router,userId]);
+ const load=useCallback(async(before?:number,silent=false)=>{if(before){setLoadingOlder(true);olderHeightRef.current=historyRef.current?.scrollHeight??null}else shouldStickRef.current=nearBottom();try{const response=await fetch(endpoint+(before?`?before=${before}`:""),{cache:"no-store"}),data=await response.json();if(!response.ok){if(!silent)setError(data.error||"Lecture impossible");return}const incoming=data.messages as Message[];setMessages(previous=>mergeMessages(previous,incoming));if(before||firstPaintRef.current)setHasOlder(data.hasOlder);await markRead(incoming)}catch{if(!silent)setError("Connexion au serveur impossible")}finally{if(before)setLoadingOlder(false)}},[endpoint,markRead,nearBottom]);
+ useEffect(()=>{const timer=window.setTimeout(()=>void markRead(initialMessages).catch(()=>setError("Impossible de mettre à jour l’état de lecture")),0);return()=>window.clearTimeout(timer)},[initialMessages,markRead]); useEffect(()=>{const polling=window.setInterval(()=>{if(document.visibilityState==="visible")void load(undefined,true)},4000),clock=window.setInterval(()=>setNow(Date.now()),10000);return()=>{window.clearInterval(polling);window.clearInterval(clock)}},[load]); useEffect(()=>{const history=historyRef.current;if(!history)return;if(olderHeightRef.current!==null){const previous=olderHeightRef.current;olderHeightRef.current=null;history.scrollTop+=history.scrollHeight-previous}else if(firstPaintRef.current||shouldStickRef.current)history.scrollTo({top:history.scrollHeight,behavior:firstPaintRef.current?"auto":"smooth"});firstPaintRef.current=false},[messages]); const online=isRecentlyOnline(person.lastSeenAt,now);
+ return <div className="qj-thread"><header className="qj-thread-header"><Link href={base} className="qj-thread-back" aria-label="Retour aux conversations"><Icon name="arrow" size={18}/></Link><ConversationAvatar name={person.name} avatarUrl={person.avatarUrl} online={online} size="large"/><div><strong>{person.name}</strong><span>{person.missionTitle}</span><small className={online?"is-online":""}>{online?"En ligne":"Hors ligne"}</small></div></header>{error&&<p role="alert" className="qj-chat-error">{error}</p>}<ol ref={historyRef} className="qj-message-history" aria-label="Historique de la conversation" onScroll={()=>{shouldStickRef.current=nearBottom()}}>{hasOlder&&<li className="qj-load-older"><button type="button" disabled={loadingOlder} onClick={()=>void load(messages[0]?.id)}>{loadingOlder?"Chargement…":"Afficher les messages précédents"}</button></li>}{!messages.length&&<li className="qj-thread-empty"><Icon name="message" size={28}/><strong>Commencez la conversation</strong><span>Écrivez votre premier message concernant cette mission.</span></li>}{messages.map(message=>{const own=message.senderId===userId;return <li key={message.id} className={`qj-message ${own?"is-own":""}`}><MessageContent messageId={message.id} body={message.body} attachments={message.attachments||[]}/><small><time dateTime={message.createdAt}>{messageTime(message.createdAt)}</time>{own&&<span aria-label={message.readAt?"Message lu":"Message envoyé"}>{message.readAt?"✓✓":"✓"}</span>}</small></li>})}</ol><MessageComposer endpoint={endpoint} onError={setError} onSent={message=>{shouldStickRef.current=true;setMessages(previous=>mergeMessages(previous,[message]));router.refresh()}}/></div>
 }

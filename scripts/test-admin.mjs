@@ -129,13 +129,15 @@ try {
     await browser.evaluate("[...document.querySelectorAll('[role=dialog] button')].find(b=>b.textContent==='Confirmer').click()"); await browser.until("!document.querySelector('[role=dialog]') && [...document.querySelectorAll('button')].some(b=>b.textContent==='Suspendre le compte')");
     check(!(await db.user.findUniqueOrThrow({ where: { id: w2.id } })).suspended, "Browser suspension and reactivation");
     await browser.go(`/admin/categories?q=${prefix}`);
+    await browser.evaluate("[...document.querySelectorAll('button')].find(button=>button.textContent.includes('Nouvelle catégorie')).click()");
+    await browser.until("!!document.querySelector('[role=dialog] [name=name]')");
     const browserCategoryName = `${prefix}Navigateur`;
-    await browser.evaluate(`document.querySelector('.rq-form [name=name]').value=${JSON.stringify(browserCategoryName)}; document.querySelector('.rq-form .rq-form-actions button').click()`); await browser.until("!!document.querySelector('.rq-success')");
+    await browser.evaluate(`document.querySelector('[role=dialog] [name=name]').value=${JSON.stringify(browserCategoryName)}; document.querySelector('[role=dialog] .rq-form-actions button:last-child').click()`); await browser.until("!!document.querySelector('.rq-success')");
     const bc = await db.category.findUniqueOrThrow({ where: { key: browserCategoryName.toLowerCase() } }); categories.push(bc.id);
     await browser.until(`document.querySelector('.qa-table').textContent.includes(${JSON.stringify(browserCategoryName)})`);
     await browser.evaluate(`[...document.querySelectorAll('tbody tr')].find(tr=>tr.textContent.includes(${JSON.stringify(browserCategoryName)})).querySelector('button').click()`);
-    await browser.until(`document.querySelector('.rq-form [name=name]').value===${JSON.stringify(browserCategoryName)}`);
-    await browser.evaluate("document.querySelector('.rq-form [name=active]').click(); document.querySelector('.rq-form .rq-form-actions button').click()"); await browser.until("!!document.querySelector('.rq-success')");
+    await browser.until(`document.querySelector('[role=dialog] [name=name]').value===${JSON.stringify(browserCategoryName)}`);
+    await browser.evaluate("document.querySelector('[role=dialog] [name=active]').click(); document.querySelector('[role=dialog] .rq-form-actions button:last-child').click()"); await browser.until("!!document.querySelector('.rq-success')");
     check(!(await db.category.findUniqueOrThrow({ where: { id: bc.id } })).active, "Browser category deactivation");
     const reportMission = await createMission(r, { title: `${prefix}Signalement navigateur`, date: "2039-12-18" });
     await browser.cookie(w.cookie); await browser.go(`/dashboard/travailleur/missions/${reportMission.id}`);

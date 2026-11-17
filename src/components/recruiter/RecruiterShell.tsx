@@ -7,6 +7,7 @@ import { useState } from "react";
 import QuickJobLogo from "@/components/QuickJobLogo";
 import LogoutButton from "@/components/LogoutButton";
 import Icon, { type IconName } from "./Icon";
+import PresenceHeartbeat from "@/components/communication/PresenceHeartbeat";
 
 const links: [string, string, IconName][] = [
   ["dashboard", "Tableau de bord", "home"], ["missions", "Mes missions", "briefcase"],
@@ -24,6 +25,7 @@ export default function RecruiterShell({ children, name, company }: { children: 
   }
   const title = links.find(([path]) => active(path))?.[1] ?? "Espace recruteur";
   return <div className={`rq-app qj-platform-shell qj-recruiter-shell ${isDashboard ? "rq-recruiter-dashboard" : ""}`}>
+    <PresenceHeartbeat />
     <a href="#recruiter-content" className="rq-skip">Aller au contenu</a>
     {open && <button className="rq-overlay" onClick={() => setOpen(false)} aria-label="Fermer la navigation" />}
     <aside className={`rq-sidebar ${open ? "is-open" : ""}`} aria-label="Espace recruteur">

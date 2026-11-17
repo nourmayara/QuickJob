@@ -1,5 +1,4 @@
 "use client";
-import PendingRecruiters from "./PendingRecruiters";
 import Link from "next/link";
 import NotificationIndicator from "@/components/communication/NotificationIndicator";
 import { useState } from "react";
@@ -30,7 +29,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       <p className="rq-nav-label">ADMINISTRATION</p>
       <nav id="admin-navigation" aria-label="Navigation administrateur">{adminLinks.map(([href, label, icon]) => {
         const active = pathname.startsWith(href);
-        return <Link key={href} href={href} className={`rq-nav-link ${active ? "is-active" : ""}`} aria-current={active ? "page" : undefined} onClick={() => setOpen(false)}><Icon name={icon} /><span>{label}{href === "/admin/recruteurs" && <PendingRecruiters />}</span>{active && <i />}</Link>;
+        return <Link key={href} href={href} className={`rq-nav-link ${active ? "is-active" : ""}`} aria-current={active ? "page" : undefined} onClick={() => setOpen(false)}><Icon name={icon} /><span>{label}</span>{active && <i />}</Link>;
       })}</nav>
       <div className="qj-admin-emblem" aria-hidden="true"><SoftIcon name="shield" size={38} /><span>Administration sécurisée</span></div>
       <div className="rq-sidebar-bottom"><LogoutButton /></div>

@@ -283,3 +283,22 @@ body.qj-clay .rq-app.qj-platform-shell .rq-page-heading :is(.rq-eyebrow,p:not(.r
 @media(max-width:1200px){body.qj-clay .rq-app.qj-platform-shell .rq-sidebar{width:232px}body.qj-clay .rq-app.qj-platform-shell .rq-workspace{margin-left:232px}body.qj-clay .rq-app.qj-platform-shell .qj-sidebar-character{left:27px;width:170px}}
 @media(max-height:850px) and (min-width:761px){body.qj-clay .rq-app.qj-platform-shell .qj-sidebar-character{display:none}body.qj-clay .rq-app.qj-worker-shell .wk-sidebar-tip{display:block}body.qj-clay .rq-app.qj-platform-shell .rq-nav-link{min-height:37px;padding-block:7px}}
 @media(max-width:760px){body.qj-clay .rq-app.qj-platform-shell .rq-sidebar{width:min(290px,88vw);border-radius:0 26px 26px 0;overflow-y:auto}body.qj-clay .rq-app.qj-platform-shell .rq-workspace{margin-left:0}body.qj-clay .rq-app.qj-platform-shell .qj-sidebar-character,body.qj-clay .rq-app.qj-platform-shell .qj-admin-emblem{display:none}body.qj-clay .rq-app.qj-worker-shell .wk-sidebar-tip{display:block}}
+
+/* One compact, responsive filter language across every QuickJob workspace. */
+body.qj-clay .rq-app .qj-filter-bar{display:flex;align-items:flex-end;flex-wrap:wrap;gap:11px 13px;margin:0 0 18px;padding:14px 16px;border:1px solid #ffffffdf;border-radius:20px;background:linear-gradient(125deg,#ffffffc7,#edf5ffb8 58%,#fff9e9a3);box-shadow:0 9px 24px #2352941d,inset 0 1px 0 #fff;backdrop-filter:blur(16px)}
+body.qj-clay .rq-app .qj-filter-field{display:grid;flex:1 1 145px;gap:6px;min-width:130px;color:#17386f;font-size:11px;font-weight:700;line-height:1.25}
+body.qj-clay .rq-app .qj-filter-field>span{padding-left:2px}
+body.qj-clay .rq-app .qj-filter-search{flex:2 1 275px;min-width:min(250px,100%)}
+body.qj-clay .rq-app .qj-filter-search>div{position:relative}
+body.qj-clay .rq-app .qj-filter-search>div>svg{position:absolute;z-index:1;left:14px;top:50%;display:block;transform:translateY(-50%);color:#2056a4;pointer-events:none}
+body.qj-clay .rq-app .qj-filter-bar :is(input:not([type="hidden"]),select){width:100%;min-height:42px!important;padding:8px 11px!important;border:1px solid #bed2ec!important;border-radius:12px!important;background:#f9fcffed!important;color:#17386f!important;box-shadow:inset 0 1px 2px #173b790c,0 3px 8px #264f8710!important;font-size:12px!important}
+body.qj-clay .rq-app .qj-filter-bar .qj-filter-search input{padding-left:44px!important}
+body.qj-clay .rq-app .qj-filter-bar input::placeholder{color:#7184a3;opacity:1}
+body.qj-clay .rq-app .qj-filter-bar :is(input,select):focus{border-color:#5e96ed!important;background:#fff!important;box-shadow:0 0 0 3px #3478f61f!important}
+body.qj-clay .rq-app .qj-filter-actions{display:flex;flex:0 0 auto;align-items:center;justify-content:flex-end;gap:10px;min-height:42px}
+body.qj-clay .rq-app .qj-filter-reset{min-height:42px;padding:8px 14px;border-color:#bed1e9;background:#f8fbffdc;color:#244d87;font-size:11px;white-space:nowrap}
+body.qj-clay .rq-app .qj-filter-count{color:#315e99;font-size:10px;font-weight:750;white-space:nowrap}
+body.qj-clay .rq-app .qj-filter-pending{min-width:0;color:#52709a;font-size:10px}
+body.qj-clay .rq-app .qj-filter-note{flex-basis:100%;margin:0;color:#526c92;font-size:10px;line-height:1.5}
+body.qj-clay .rq-app .qj-filter-bar[aria-busy="true"]{border-color:#a9c8f1}
+@media(max-width:760px){body.qj-clay .rq-app .qj-filter-bar{display:grid;grid-template-columns:1fr;padding:13px}body.qj-clay .rq-app .qj-filter-field,body.qj-clay .rq-app .qj-filter-search{width:100%;min-width:0}body.qj-clay .rq-app .qj-filter-actions{justify-content:stretch;flex-wrap:wrap}body.qj-clay .rq-app .qj-filter-actions .qj-filter-reset{flex:1}body.qj-clay .rq-app .qj-filter-count{flex:1}}

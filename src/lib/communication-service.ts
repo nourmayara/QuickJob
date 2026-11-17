@@ -10,7 +10,7 @@ export function participantWhere(user: CommunicationActor): Prisma.ApplicationWh
   return user.role === "TRAVAILLEUR" ? { workerId: user.id } : { mission: { recruiterId: user.id } };
 }
 export async function participantApplication(db: Prisma.TransactionClient, user: CommunicationActor, id: number) {
-  const application = await db.application.findFirst({ where: { id, ...participantWhere(user) }, select: { id: true, workerId: true, status: true, mission: { select: { id: true, title: true, recruiterId: true, status: true, date: true, startTime: true, endTime: true, recruiter: { select: { name: true, firstName: true, suspended: true, role: true, recruiterVerification: { select: { status: true } } } } } }, worker: { select: { name: true, firstName: true } } } });
+  const application = await db.application.findFirst({ where: { id, ...participantWhere(user) }, select: { id: true, workerId: true, status: true, mission: { select: { id: true, title: true, recruiterId: true, status: true, date: true, startTime: true, endTime: true, recruiter: { select: { id: true, name: true, firstName: true, avatarUrl: true, lastSeenAt: true, suspended: true, role: true, recruiterVerification: { select: { status: true } } } } } }, worker: { select: { id: true, name: true, firstName: true, avatarUrl: true, lastSeenAt: true } } } });
   if (!application) throw new WorkerError(404, "Candidature introuvable");
   if (application.status !== "ACCEPTED") throw new WorkerError(403, "Une candidature acceptée est requise");
   const recruiter = application.mission.recruiter;
@@ -24,15 +24,16 @@ export function threadApplication(user: CommunicationActor, id: number) {
 }
 export async function threadMessages(user: CommunicationActor, id: number, before?: number) {
   await threadApplication(user, id);
-  const rows = await prisma.message.findMany({ where: { applicationId: id, ...(before ? { id: { lt: before } } : {}) }, select: { id: true, senderId: true, body: true, createdAt: true, readAt: true }, orderBy: { id: "desc" }, take: 51 });
+  const rows = await prisma.message.findMany({ where: { applicationId: id, ...(before ? { id: { lt: before } } : {}) }, select: { id: true, senderId: true, body: true, createdAt: true, readAt: true, attachments: { select: { id: true, kind: true, name: true, mimeType: true, size: true, duration: true, latitude: true, longitude: true, contactName: true, contactPhone: true } } }, orderBy: { id: "desc" }, take: 51 });
   return { messages: rows.slice(0, 50).reverse(), hasOlder: rows.length > 50 };
 }
-export async function sendMessage(user: CommunicationActor, id: number, body: string) {
+export type NewAttachment = { kind: string; name?: string; mimeType?: string; size?: number; storageKey?: string; duration?: number; latitude?: number; longitude?: number; contactName?: string; contactPhone?: string };
+export async function sendMessage(user: CommunicationActor, id: number, body: string, attachments: NewAttachment[] = []) {
   return prisma.$transaction(async tx => {
     // Serialize sends with withdrawals, decisions and mission changes on SQLite.
     await tx.application.updateMany({ where: { id, ...participantWhere(user) }, data: { id } });
     const application = await participantApplication(tx, user, id);
-    const message = await tx.message.create({ data: { applicationId: id, senderId: user.id, body }, select: { id: true, senderId: true, body: true, createdAt: true, readAt: true } });
+    const message = await tx.message.create({ data: { applicationId: id, senderId: user.id, body, attachments: attachments.length ? { create: attachments } : undefined }, select: { id: true, senderId: true, body: true, createdAt: true, readAt: true, attachments: { select: { id: true, kind: true, name: true, mimeType: true, size: true, duration: true, latitude: true, longitude: true, contactName: true, contactPhone: true } } } });
     const recipientId = user.id === application.workerId ? application.mission.recruiterId : application.workerId;
     await tx.notification.create({ data: { userId: recipientId, kind: "MESSAGE", applicationId: id, missionId: application.mission.id, message: `Nouveau message concernant « ${application.mission.title} ».` } });
     return message;

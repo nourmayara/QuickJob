@@ -6,6 +6,7 @@ import { formatDate } from "@/components/recruiter/ui";
 import AdminPagination from "@/components/admin/AdminPagination";
 import Icon from "@/components/recruiter/Icon";
 import SoftIcon from "@/components/SoftIcon";
+import AutoFilterForm from "@/components/filters/AutoFilterForm";
 
 const roleLabels: Record<string, string> = { TRAVAILLEUR: "Travailleur", RECRUTEUR: "Recruteur", ADMIN: "Admin" };
 const verificationLabels: Record<string, string> = { APPROUVE: "Approuvé", EN_ATTENTE: "En attente", REFUSE: "Refusé" };
@@ -24,13 +25,11 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
     </header>
 
     {!parsed.success && <p role="alert" className="rq-error">Filtres invalides.</p>}
-    <form method="GET" className="qa-users-filters" key={JSON.stringify(input)}>
-      <label className="qa-users-search"><span>Recherche</span><div><Icon name="search" size={17} /><input name="q" defaultValue={input.q} maxLength={160} placeholder="Nom, email ou organisation…" /></div></label>
-      <label><span>Rôle</span><select name="role" defaultValue={input.role}><option value="">Tous</option>{["TRAVAILLEUR", "RECRUTEUR", "ADMIN"].map(role => <option key={role} value={role}>{roleLabels[role]}</option>)}</select></label>
-      <label><span>Compte</span><select name="status" defaultValue={input.status}><option value="">Tous</option><option value="ACTIF">Actif</option><option value="SUSPENDU">Suspendu</option></select></label>
-      <button className="rq-button rq-primary" type="submit"><Icon name="search" size={16} />Rechercher</button>
-      <Link className="rq-button qa-users-reset" href="/admin/utilisateurs">Réinitialiser</Link>
-    </form>
+    <AutoFilterForm key={JSON.stringify(input)} resetHref="/admin/utilisateurs" ariaLabel="Filtrer les utilisateurs">
+      <label className="qj-filter-field qj-filter-search"><span>Recherche</span><div><Icon name="search" size={17} /><input type="search" name="q" defaultValue={input.q} maxLength={160} placeholder="Nom, email ou organisation…" /></div></label>
+      <label className="qj-filter-field"><span>Rôle</span><select name="role" defaultValue={input.role}><option value="">Tous</option>{["TRAVAILLEUR", "RECRUTEUR", "ADMIN"].map(role => <option key={role} value={role}>{roleLabels[role]}</option>)}</select></label>
+      <label className="qj-filter-field"><span>Compte</span><select name="status" defaultValue={input.status}><option value="">Tous</option><option value="ACTIF">Actif</option><option value="SUSPENDU">Suspendu</option></select></label>
+    </AutoFilterForm>
 
     <section className="qa-users-card" aria-labelledby="users-table-title">
       <div className="qa-users-card-heading"><div><h2 id="users-table-title">{total.toLocaleString("fr-FR")} utilisateur{total > 1 ? "s" : ""}</h2><p>Comptes correspondant aux critères sélectionnés</p></div></div>
