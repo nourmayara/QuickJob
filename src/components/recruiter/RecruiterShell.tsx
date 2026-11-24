@@ -13,6 +13,7 @@ const links: [string, string, IconName][] = [
   ["missions/nouvelle", "Publier une mission", "plus"], ["candidatures", "Candidatures", "document"],
   ["travailleurs", "Travailleurs sélectionnés", "check"], ["messages", "Messages", "message"],
   ["profil", "Mon profil", "user"], ["parametres", "Paramètres", "settings"],
+  ["finance", "Paiements et contrats", "document"],
 ];
 export default function RecruiterShell({ children, name, company }: { children: React.ReactNode; name: string; company: string | null }) {
   const pathname = usePathname();

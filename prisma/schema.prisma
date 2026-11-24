@@ -32,6 +32,7 @@ model User {
   email                 String                     @unique
   password              String
   createdAt             DateTime                   @default(now())
+  lastSeenAt            DateTime?
   recruiterVerification RecruiterVerification?     @relation("RecruiterVerificationOwner")
   recruiterDecisions    RecruiterVerification[]    @relation("RecruiterVerificationAdmin")
   notifications         Notification[]
@@ -42,6 +43,10 @@ model User {
   reportedProfiles      Report[]                   @relation("ReportTarget")
   moderatedReports      Report[]                   @relation("ReportModerator")
   adminActions          AdminAction[]
+  commissionChanges     CommissionRateHistory[]
+  openedDisputes        EngagementDispute[]        @relation("DisputeAuthor")
+  resolvedDisputes      EngagementDispute[]        @relation("DisputeModerator")
+  authorizedRefunds     EngagementRefund[]
   workerSkills          WorkerSkill[]
   workExperiences       WorkExperience[]
   categoryPreferences   WorkerCategoryPreference[]
@@ -49,6 +54,25 @@ model User {
   recommendationOptIn   Boolean                    @default(false)
 
   @@index([createdAt])
+  @@index([lastSeenAt])
+}
+
+model FinancialSettings {
+  id              Int      @id @default(1)
+  commissionBps   Int      @default(2000)
+  validationHours Int      @default(48)
+  paymentHours    Int      @default(48)
+  revision        Int      @default(0)
+  updatedAt       DateTime @updatedAt
+}
+
+model CommissionRateHistory {
+  id          Int      @id @default(autoincrement())
+  previousBps Int
+  newBps      Int
+  adminId     Int
+  admin       User     @relation(fields: [adminId], references: [id], onDelete: Restrict)
+  createdAt   DateTime @default(now())
 }
 
 model RecruiterVerification {
@@ -80,6 +104,7 @@ model Notification {
   verification   RecruiterVerification? @relation(fields: [verificationId], references: [userId], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([userId, readAt, createdAt])
 }
 
 model Session {
@@ -213,11 +238,119 @@ model Application {
   cancelledAt         DateTime?
   cancelledFromStatus String?
   replacementOffer    ReplacementOffer? @relation("ReplacementCandidate")
+  engagement          Engagement?
 
   @@unique([missionId, workerId])
   @@index([workerId])
   @@index([workerId, status])
   @@index([missionId, status])
+}
+
+model Engagement {
+  id                   Int                  @id @default(autoincrement())
+  applicationId        Int                  @unique
+  application          Application          @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  status               String               @default("AWAITING_CONTRACTS")
+  currency             String               @default("TND")
+  workerMillimes       Int
+  commissionBps        Int
+  commissionMillimes   Int
+  totalMillimes        Int
+  startAt              DateTime
+  endAt                DateTime
+  createdAt            DateTime             @default(now())
+  confirmedAt          DateTime?
+  checkedInAt          DateTime?
+  checkedOutAt         DateTime?
+  completedAt          DateTime?
+  validationDueAt      DateTime?
+  validatedAt          DateTime?
+  paymentDueAt         DateTime?
+  validationReminderAt DateTime?
+  paymentReminderAt    DateTime?
+  contracts            EngagementContract[]
+  disputes             EngagementDispute[]
+  payment              EngagementPayment?
+
+  @@index([status, paymentDueAt])
+}
+
+model EngagementPayment {
+  id             String            @id @default(uuid())
+  engagementId   Int               @unique
+  engagement     Engagement        @relation(fields: [engagementId], references: [id], onDelete: Restrict)
+  stripeIntentId String?           @unique
+  stripeAmount   Int
+  stripeCurrency String
+  status         String            @default("PENDING")
+  createdAt      DateTime          @default(now())
+  paidAt         DateTime?
+  payout         SimulatedPayout?
+  refund         EngagementRefund?
+}
+
+model SimulatedPayout {
+  paymentId  String            @id
+  payment    EngagementPayment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  createdAt  DateTime          @default(now())
+  reversedAt DateTime?
+}
+
+model EngagementRefund {
+  id             String            @id @default(uuid())
+  paymentId      String            @unique
+  payment        EngagementPayment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  adminId        Int
+  admin          User              @relation(fields: [adminId], references: [id], onDelete: Restrict)
+  reason         String
+  stripeRefundId String?           @unique
+  status         String            @default("REQUESTED")
+  createdAt      DateTime          @default(now())
+  completedAt    DateTime?
+}
+
+model StripeWebhookEvent {
+  id          String   @id
+  processedAt DateTime @default(now())
+}
+
+model StripePaymentReconciliation {
+  id             Int      @id @default(autoincrement())
+  adminId        Int
+  paymentId      String
+  stripeIntentId String?
+  outcome        String
+  reason         String
+  createdAt      DateTime @default(now())
+
+  @@index([paymentId, createdAt])
+}
+
+model EngagementDispute {
+  id             Int        @id @default(autoincrement())
+  engagementId   Int
+  engagement     Engagement @relation(fields: [engagementId], references: [id], onDelete: Restrict)
+  openedById     Int
+  openedBy       User       @relation("DisputeAuthor", fields: [openedById], references: [id], onDelete: Restrict)
+  reason         String
+  previousStatus String
+  createdAt      DateTime   @default(now())
+  resolvedAt     DateTime?
+  resolvedById   Int?
+  resolvedBy     User?      @relation("DisputeModerator", fields: [resolvedById], references: [id], onDelete: Restrict)
+  decision       String?
+  resolution     String?
+}
+
+model EngagementContract {
+  reference    String     @id
+  engagementId Int
+  engagement   Engagement @relation(fields: [engagementId], references: [id], onDelete: Restrict)
+  party        String
+  content      String
+  acceptedAt   DateTime?
+
+  @@unique([engagementId, party])
 }
 
 model ReplacementOffer {
@@ -267,11 +400,31 @@ model Message {
   application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   senderId      Int
   sender        User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  body          String
+  body          String      @default("")
+  attachments   MessageAttachment[]
   createdAt     DateTime    @default(now())
   readAt        DateTime?
 
   @@index([applicationId, id])
+}
+
+model MessageAttachment {
+  id           Int      @id @default(autoincrement())
+  messageId    Int
+  message      Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  kind         String
+  name         String?
+  mimeType     String?
+  size         Int?
+  storageKey   String?
+  duration     Int?
+  latitude     Float?
+  longitude    Float?
+  contactName  String?
+  contactPhone String?
+  createdAt    DateTime @default(now())
+
+  @@index([messageId])
 }
 
 model Review {

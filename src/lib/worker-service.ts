@@ -1,6 +1,7 @@
 import "server-only";
 import prisma from "./prisma";
 import { publishedMissionWhere } from "./worker-data";
+import { closeCompletedMission } from "./mission-financial-closure";
 
 export class WorkerError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -12,11 +13,19 @@ export async function withdrawApplication(workerId: number, id: number) {
     // Same mission write lock as acceptance and capacity changes.
     const locked = await tx.mission.updateMany({ where: { id: application.missionId, status: { in: ["PUBLISHED", "FULL", "CLOSED"] } }, data: { id: application.missionId } });
     if (!locked.count) throw new WorkerError(409, "Cette mission ne permet plus de retirer une candidature");
+    const engagement = await tx.engagement.findUnique({ where: { applicationId: id } });
+    if (engagement) {
+      if (engagement.status !== "AWAITING_CONTRACTS" && (engagement.status !== "CONFIRMED" || engagement.startAt <= new Date())) {
+        throw new WorkerError(409, "Cet engagement ne peut plus être annulé.");
+      }
+      await tx.engagement.update({ where: { id: engagement.id }, data: { status: "CANCELLED" } });
+    }
     const changed = await tx.application.updateMany({ where: { id, workerId, status: { in: ["PENDING", "ACCEPTED"] } }, data: { status: "CANCELLED", cancelledBy: "WORKER", cancelledAt: new Date(), cancelledFromStatus: application.status } });
     if (!changed.count) throw new WorkerError(409, "Cette candidature ne peut plus être retirée");
     const mission = await tx.mission.findUniqueOrThrow({ where: { id: application.missionId } });
     const occupied = await tx.application.count({ where: { missionId: mission.id, status: "ACCEPTED" } });
     if (mission.status === "FULL" && occupied < mission.capacity) await tx.mission.update({ where: { id: mission.id }, data: { status: "PUBLISHED" } });
+    if (engagement) await closeCompletedMission(tx, mission.id);
     await tx.notification.create({ data: { userId: mission.recruiterId, kind: "APPLICATION", applicationId: id, missionId: mission.id, message: `Une candidature pour « ${mission.title} » a été retirée par le travailleur.` } });
     await tx.notification.create({ data: { userId: workerId, kind: "APPLICATION", applicationId: id, missionId: mission.id, message: `Votre candidature pour « ${mission.title} » a été retirée.` } });
     return { ok: true, status: "CANCELLED" };

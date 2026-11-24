@@ -2,6 +2,7 @@ import "server-only";
 import prisma from "./prisma";
 import { WorkerError } from "./worker-service";
 import { missionInterval } from "./schedule-time";
+import { generateEngagement } from "./engagement-contracts";
 import { scheduleConflict } from "./schedule-service";
 import { recommendReplacementCandidates } from "./matching-service";
 
@@ -46,12 +47,13 @@ export async function respondToReplacement(workerId: number, offerId: number, de
     const occupied = await tx.application.count({ where: { missionId: offer.missionId, status: "ACCEPTED" } });
     if (occupied >= offer.mission.capacity) throw new WorkerError(409, "La place a déjà été pourvue");
     await tx.application.update({ where: { id: offer.applicationId }, data: { status: "ACCEPTED" } });
+    if (!await generateEngagement(tx, offer.applicationId)) throw new WorkerError(409, "Impossible de générer les contrats pour ce remplacement.");
     await tx.replacementOffer.update({ where: { id: offer.id }, data: { status: "ACCEPTED", respondedAt: new Date() } });
     await tx.replacementOffer.updateMany({ where: { cancelledApplicationId: offer.cancelledApplicationId, id: { not: offer.id }, status: "PENDING" }, data: { status: "CANCELLED", respondedAt: new Date() } });
     if (occupied + 1 >= offer.mission.capacity) await tx.mission.update({ where: { id: offer.missionId }, data: { status: "FULL" } });
     await tx.notification.createMany({ data: [
-      { userId: workerId, kind: "APPLICATION", applicationId: offer.applicationId, missionId: offer.missionId, message: `Vous avez accepté le remplacement pour « ${offer.mission.title} ». Votre participation est confirmée.` },
-      { userId: offer.mission.recruiterId, kind: "APPLICATION", applicationId: offer.applicationId, missionId: offer.missionId, message: `Le remplacement pour « ${offer.mission.title} » a été accepté. La place est confirmée.` },
+      { userId: workerId, kind: "APPLICATION", applicationId: offer.applicationId, missionId: offer.missionId, message: `Votre contrat pour le remplacement « ${offer.mission.title} » est disponible dans Mes gains et contrats.` },
+      { userId: offer.mission.recruiterId, kind: "APPLICATION", applicationId: offer.applicationId, missionId: offer.missionId, message: `Votre contrat pour le remplacement « ${offer.mission.title} » est disponible dans Paiements et contrats.` },
     ] });
     return { status: decision };
   });

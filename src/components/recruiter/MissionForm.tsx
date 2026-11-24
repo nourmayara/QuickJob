@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { missionFormSchema } from "@/lib/recruiter-validation";
+import { formatDinars } from "@/lib/financial-amounts";
 import Icon from "./Icon";
 
 export type MissionFormValues = { id: number; title: string; description: string; category: string | null; city: string | null; address: string | null; date: string; startTime: string | null; endTime: string | null; pay: number | null; capacity: number; skills: string | null; experience: string | null; status: string };
@@ -10,6 +11,32 @@ export default function MissionForm({ mission, categories }: { mission?: Mission
   const router = useRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [pay, setPay] = useState(String(mission?.pay ?? ""));
+  const [capacity, setCapacity] = useState(String(mission?.capacity ?? 1));
+  const [estimate, setEstimate] = useState<{ commissionBps: number; commissionMillimes: number; missionTotalMillimes: number } | null>(null);
+  const [estimateError, setEstimateError] = useState(false);
+  useEffect(() => {
+    if (mission && mission.status !== "DRAFT") return;
+    if (pay === "" || Number(pay) < 0 || Number(pay) > 1_000_000 ||
+        !Number.isInteger(Number(capacity)) || Number(capacity) < 1 || Number(capacity) > 1000) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch("/api/recruteur/finance/estimation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pay: Number(pay), capacity: Number(capacity) }),
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error();
+        const result = await response.json();
+        if (!controller.signal.aborted) setEstimate(result);
+      } catch {
+        if (!controller.signal.aborted) setEstimateError(true);
+      }
+    }, 250);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [mission, pay, capacity]);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (pending) return;
     const form = event.currentTarget;
@@ -29,7 +56,15 @@ export default function MissionForm({ mission, categories }: { mission?: Mission
     } catch { setError("Connexion au serveur impossible. Réessayez."); }
     finally { setPending(false); }
   }
-  return <form className="rq-form" onSubmit={submit} aria-busy={pending}>
+  return <form className="rq-form" onSubmit={submit} aria-busy={pending} onChange={event => {
+    const input: EventTarget = event.target;
+    if (!(input instanceof HTMLInputElement)) return;
+    if (input.name !== "pay" && input.name !== "capacity") return;
+    setEstimate(null);
+    setEstimateError(false);
+    if (input.name === "pay") setPay(input.value);
+    else setCapacity(input.value);
+  }}>
     <div className="rq-notice"><Icon name="shield" size={17} /><span>Décrivez précisément votre besoin. Les dates et horaires sont ceux de la Tunisie ; la rémunération est exprimée par travailleur et par mission.</span></div>
     <fieldset disabled={pending} style={{ border: 0, padding: 0, margin: 0 }}><legend className="sr-only">Informations de la mission</legend><div className="rq-form-grid">
       <label className="rq-field rq-span-2">Titre de la mission<input name="title" required minLength={3} maxLength={160} defaultValue={mission?.title} placeholder="Ex. Serveurs pour un événement" /></label>
@@ -45,6 +80,10 @@ export default function MissionForm({ mission, categories }: { mission?: Mission
       <label className="rq-field">Compétences souhaitées<input name="skills" maxLength={1000} defaultValue={mission?.skills || ""} placeholder="Ex. Service, accueil, travail en équipe" /></label>
       <label className="rq-field rq-span-2">Expérience souhaitée (facultatif)<textarea name="experience" maxLength={2000} defaultValue={mission?.experience || ""} placeholder="Précisez l’expérience utile pour cette mission…" /></label>
     </div></fieldset>
+    {(!mission || mission.status === "DRAFT") && <div className="rq-notice" aria-live="polite">
+      {estimate ? <span>Coût estimé pour {capacity} travailleur(s) · {formatDinars(estimate.missionTotalMillimes)}. Commission de {estimate.commissionBps / 100} %, soit {formatDinars(estimate.commissionMillimes)} par travailleur.</span> :
+        <span>{estimateError ? "Estimation temporairement indisponible." : "Renseignez la rémunération et le nombre de travailleurs pour estimer le coût."}</span>}
+    </div>}
     {error && <p className="rq-error" role="alert">{error}</p>}
     <div className="rq-form-actions"><Link href="/recruteur/missions" className="rq-button">Revenir aux missions</Link>{(!mission || mission.status === "DRAFT") && <button type="submit" value="DRAFT" className="rq-button" disabled={pending}>Enregistrer en brouillon</button>}<button type="submit" value="PUBLISHED" className="rq-button rq-primary" disabled={pending}><Icon name={mission && mission.status !== "DRAFT" ? "check" : "plus"} size={17} />{pending ? "Enregistrement…" : mission && mission.status !== "DRAFT" ? "Enregistrer les modifications" : "Publier la mission"}</button></div>
   </form>;

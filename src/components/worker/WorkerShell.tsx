@@ -9,7 +9,7 @@ import Icon, { type IconName } from "@/components/recruiter/Icon";
 import Image from "next/image";
 
 const base = "/dashboard/travailleur";
-const links: [string, string, IconName][] = [["", "Mon espace", "home"], ["missions", "Trouver une mission", "search"], ["calendrier", "Mon calendrier", "calendar"], ["candidatures", "Mes candidatures", "document"], ["favoris", "Mes favoris", "heart"], ["messages", "Messages", "message"], ["profil", "Mon profil professionnel", "user"]];
+const links: [string, string, IconName][] = [["", "Mon espace", "home"], ["missions", "Trouver une mission", "search"], ["calendrier", "Mon calendrier", "calendar"], ["candidatures", "Mes candidatures", "document"], ["favoris", "Mes favoris", "heart"], ["messages", "Messages", "message"], ["profil", "Mon profil professionnel", "user"], ["finance", "Mes gains et contrats", "document"]];
 export default function WorkerShell({ children, name }: { children: React.ReactNode; name: string }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);

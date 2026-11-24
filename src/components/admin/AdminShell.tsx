@@ -14,6 +14,7 @@ const adminLinks: [string, string, IconName][] = [
   ["/admin/utilisateurs", "Utilisateurs", "people"],
   ["/admin/recruteurs", "Vérification des recruteurs", "shield"],
   ["/admin/missions", "Missions", "briefcase"],
+  ["/admin/finance", "Gestion financière", "layers"],
   ["/admin/signalements", "Signalements", "mail"],
   ["/admin/categories", "Catégories", "layers"],
 ];

@@ -1,0 +1,69 @@
+.dialog {
+  position: fixed;
+  inset: 0;
+  width: min(48rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border, #ddd6fe);
+  border-radius: var(--radius-card, 1rem);
+  background: var(--color-surface, white);
+  color: var(--color-text, #1e293b);
+  box-shadow: var(--shadow-dialog, 0 24px 60px rgb(25 55 96 / 25%));
+}
+
+.dialog::backdrop {
+  background: rgb(25 55 96 / 38%);
+}
+
+:global(html):has(.dialog[open]),
+:global(body):has(.dialog[open]) {
+  overflow: hidden;
+}
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2rem - 2px);
+}
+
+.header,
+.footer {
+  display: flex;
+  flex: none;
+  gap: 0.75rem;
+  padding: clamp(0.75rem, 3vw, 1.5rem);
+}
+
+.header {
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border, #ddd6fe);
+}
+
+.close {
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 1.375rem;
+  line-height: 1;
+}
+
+.content {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(0.75rem, 3vw, 1.5rem);
+}
+
+.content:focus-visible {
+  outline: 2px solid var(--color-primary, #4f46e5);
+  outline-offset: -2px;
+}
+
+.footer {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  border-top: 1px solid var(--color-border, #ddd6fe);
+}

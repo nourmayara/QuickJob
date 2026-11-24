@@ -32,7 +32,7 @@ export async function calendarData(workerId: number, month: string) {
   const bounds = monthBounds(month);
   const [slots, applications] = await Promise.all([
     prisma.availability.findMany({ where: { workerId, startAt: { lt: bounds.endAt }, endAt: { gt: bounds.startAt } }, orderBy: { startAt: "asc" } }),
-    prisma.application.findMany({ where: { workerId, status: { in: ["PENDING", "ACCEPTED"] }, mission: { status: { in: [...activeScheduleStatuses, "COMPLETED"] }, date: { gte: new Date(`${month}-01T00:00:00Z`), lt: new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 1)) } } }, select: { id: true, status: true, mission: { select: { id: true, title: true, date: true, startTime: true, endTime: true, city: true, status: true } } } }),
+    prisma.application.findMany({ where: { workerId, status: { in: ["PENDING", "ACCEPTED"] }, OR: [{ engagement: null }, { engagement: { confirmedAt: { not: null }, status: { not: "CANCELLED" } } }], mission: { status: { in: [...activeScheduleStatuses, "COMPLETED"] }, date: { gte: new Date(`${month}-01T00:00:00Z`), lt: new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 1)) } } }, select: { id: true, status: true, mission: { select: { id: true, title: true, date: true, startTime: true, endTime: true, city: true, status: true } } } }),
   ]);
   const events = [
     ...slots.map(s => ({ id: `slot-${s.id}`, slotId: s.id, type: s.kind, title: s.kind === "AVAILABLE" ? "Disponible" : "Indisponible", date: localParts(s.startAt).date, startTime: localParts(s.startAt).time, endTime: localParts(s.endAt).time, note: s.note, href: "", startAt: s.startAt.toISOString(), endAt: s.endAt.toISOString() })),

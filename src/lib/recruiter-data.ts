@@ -9,7 +9,16 @@ export async function ownedMission(value: string) {
   const user = await requirePageRole(["RECRUTEUR"]);
   const id = Number(value);
   if (!Number.isSafeInteger(id) || id <= 0) notFound();
-  const mission = await prisma.mission.findFirst({ where: { id, recruiterId: user.id }, include: missionInclude });
+  const mission = await prisma.mission.findFirst({
+    where: { id, recruiterId: user.id },
+    include: {
+      ...missionInclude,
+      applications: {
+        ...missionInclude.applications,
+        select: { id: true, engagement: { select: { status: true } } },
+      },
+    },
+  });
   if (!mission) notFound();
   return mission;
 }

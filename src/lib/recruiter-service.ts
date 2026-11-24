@@ -5,6 +5,8 @@ import { missionCreateSchema, missionPatchSchema, missionFormSchema } from "./re
 import type { z } from "zod";
 import { missionInterval } from "./schedule-time";
 import { scheduleConflict } from "./schedule-service";
+import { generateEngagement } from "./engagement-contracts";
+import { overduePaymentWhere } from "./financial-overdue";
 
 export class RecruiterError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -19,6 +21,9 @@ function validateTimes(start?: string | null, end?: string | null) {
 export async function createMission(recruiterId: number, input: z.infer<typeof missionCreateSchema>) {
   validateTimes(input.startTime, input.endTime);
   return prisma.$transaction(async tx => {
+    if (input.status === "PUBLISHED" && await tx.engagement.count({ where: overduePaymentWhere(recruiterId, new Date()) })) {
+      throw new RecruiterError(409, "Réglez vos paiements en retard avant de publier une mission.");
+    }
     const category = input.category ? await requireActiveCategory(tx, input.category) : undefined;
     return tx.mission.create({ data: { ...input, category, date: input.date ? new Date(`${input.date}T00:00:00Z`) : undefined, recruiterId } });
   });
@@ -30,6 +35,22 @@ export async function updateMission(recruiterId: number, id: number, input: z.in
     if (!locked.count) throw new RecruiterError(404, "Mission introuvable ou non modifiable");
     const mission = await tx.mission.findUniqueOrThrow({ where: { id } });
     const { status, ...details } = input;
+    if (mission.status === "DRAFT" && status === "PUBLISHED" && await tx.engagement.count({ where: overduePaymentWhere(recruiterId, new Date()) })) {
+      throw new RecruiterError(409, "Réglez vos paiements en retard avant de publier une mission.");
+    }
+    const engagements = { application: { missionId: id }, status: { not: "CANCELLED" } };
+    if (status === "IN_PROGRESS" && await tx.engagement.count({ where: engagements })) {
+      throw new RecruiterError(409, "Confirmez le Check-in depuis les contrats pour démarrer la mission.");
+    }
+    if ((Object.keys(details).length || status === "COMPLETED") && await tx.engagement.count({ where: engagements })) {
+      throw new RecruiterError(409, "Les conditions de cette mission sont figées par ses contrats.");
+    }
+    if (status === "CANCELLED") {
+      if (await tx.engagement.count({ where: { ...engagements, OR: [{ status: { notIn: ["AWAITING_CONTRACTS", "CONFIRMED"] } }, { status: "CONFIRMED", startAt: { lte: new Date() } }] } })) {
+        throw new RecruiterError(409, "Un engagement a commencé. Ouvrez un litige en cas de désaccord.");
+      }
+      await tx.engagement.updateMany({ where: engagements, data: { status: "CANCELLED" } });
+    }
     if (input.category && (input.category !== mission.category || (mission.status === "DRAFT" && status === "PUBLISHED"))) details.category = await requireActiveCategory(tx, input.category);
     if (mission.status === "DRAFT" && status === "PUBLISHED" && !input.category && mission.category) await requireActiveCategory(tx, mission.category);
     if (Object.keys(details).length && !["DRAFT", "PUBLISHED", "FULL"].includes(mission.status)) throw new RecruiterError(409, "Cette mission ne peut plus être modifiée");
@@ -92,10 +113,13 @@ export async function decideApplication(recruiterId: number, id: number, status:
     const changed = await tx.application.updateMany({ where: { id, status: "PENDING", mission: { recruiterId } }, data: { status } });
     if (!changed.count) throw new RecruiterError(409, "Cette candidature a déjà été traitée");
     if (status === "ACCEPTED") {
+      if (!await generateEngagement(tx, id)) throw new RecruiterError(409, "Cette mission doit avoir une rémunération et une date de début future.");
       const count = await tx.application.count({ where: { missionId: mission.id, status: "ACCEPTED" } });
       if (count >= mission.capacity) await tx.mission.update({ where: { id: mission.id }, data: { status: "FULL" } });
     }
-    await tx.notification.create({ data: { userId: application.workerId, kind: "APPLICATION", applicationId: id, missionId: mission.id, message: `Votre candidature pour « ${mission.title} » a été ${status === "ACCEPTED" ? "acceptée" : "refusée"}.` } });
+    await tx.notification.create({ data: { userId: application.workerId, kind: "APPLICATION", applicationId: id, missionId: mission.id, message: status === "ACCEPTED"
+      ? `Vous avez été sélectionné pour « ${mission.title} ». Consultez votre contrat dans Mes gains et contrats.`
+      : `Votre candidature pour « ${mission.title} » a été refusée.` } });
     return { ok: true, status };
   });
 }
