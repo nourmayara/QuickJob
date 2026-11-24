@@ -22,6 +22,7 @@ const adminLinks: [string, string, IconName][] = [
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const title = adminLinks.find(([href]) => pathname.startsWith(href))?.[1] ?? "Administration";
   return <div className="rq-app qj-platform-shell qj-admin-shell">
     <a className="rq-skip" href="#admin-content">Aller au contenu</a>
     {open && <button className="rq-overlay" onClick={() => setOpen(false)} aria-label="Fermer la navigation" />}
@@ -35,6 +36,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       <div className="qj-admin-emblem" aria-hidden="true"><SoftIcon name="shield" size={38} /><span>Administration sécurisée</span></div>
       <div className="rq-sidebar-bottom"><LogoutButton /></div>
     </aside>
-    <div className="rq-workspace"><header className="rq-header"><div className="rq-header-left"><button className="rq-menu rq-icon-button" onClick={() => setOpen(!open)} aria-label="Ouvrir la navigation" aria-expanded={open} aria-controls="admin-navigation"><Icon name="menu" /></button><strong>Administration QuickJob</strong></div><NotificationIndicator /></header><main className="rq-content" id="admin-content">{children}</main></div>
+    <div className="rq-workspace"><header className="rq-header"><div className="rq-header-left"><button className="rq-menu rq-icon-button" onClick={() => setOpen(!open)} aria-label="Ouvrir la navigation" aria-expanded={open} aria-controls="admin-navigation"><Icon name="menu" /></button><span>Administration QuickJob <span className="rq-breadcrumb">/</span> <strong>{title}</strong></span></div><NotificationIndicator /></header><main className="rq-content" id="admin-content">{children}</main></div>
   </div>;
 }

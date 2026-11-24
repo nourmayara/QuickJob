@@ -6,6 +6,7 @@ import AdminShell from "@/components/admin/AdminShell";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import "../../recruteur/recruiter.css";
 import "../../premium-dashboard.css";
+import "../../floating-shell.css";
 export default async function RoleDashboard({ params }: { params: Promise<{ role: string }> }) {
   const { role } = await params;
   const roles = { travailleur: "TRAVAILLEUR", recruteur: "RECRUTEUR", administrateur: "ADMIN" } as const;

@@ -1,0 +1,49 @@
+.wk-mission-detail-page{min-width:0}
+.wk-mission-detail-title{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.wk-mission-detail-title>.rq-button{width:38px;min-width:38px;padding:0;font-size:18px}
+.wk-mission-detail-title .rq-page-heading{flex:1;margin:0!important}
+.wk-mission-hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);min-height:188px;overflow:hidden;margin-bottom:17px;border:1px solid rgba(255,255,255,.92);border-radius:24px;background:linear-gradient(125deg,rgba(255,255,255,.91),rgba(231,241,255,.86) 58%,rgba(255,248,216,.8));box-shadow:0 15px 34px rgba(36,77,139,.14),inset 0 1px #fff}
+.wk-mission-hero-copy{display:flex;min-width:0;flex-direction:column;justify-content:center;padding:22px 27px}
+.wk-mission-hero-badges{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.wk-mission-hero .wk-category{display:inline-flex;margin:0;padding:6px 10px;border:1px solid #f1d576;border-radius:999px;background:#fff2b8;color:#75570b;font-size:10px;font-weight:700}
+.wk-mission-hero h1{max-width:760px;color:#143b79;font-size:clamp(24px,2.4vw,35px);line-height:1.15;letter-spacing:-.04em;overflow-wrap:anywhere}
+.wk-mission-hero-copy>p{margin-top:8px;color:#526d94;font-size:12px;font-weight:650}
+.wk-mission-hero-meta{display:flex;align-items:center;flex-wrap:wrap;gap:8px 18px;margin-top:14px;color:#294f87;font-size:11px}
+.wk-mission-hero-meta span{display:flex;align-items:center;gap:6px}
+.wk-mission-hero-meta span::before{content:"";width:6px;height:6px;border-radius:50%;background:#2370ec}
+.wk-mission-hero .wk-mission-art.wk-mission-hero-art{height:100%;min-height:188px;border-radius:0;box-shadow:none}
+.wk-mission-hero .wk-mission-hero-art img{object-position:center 25%}
+.wk-mission-hero .wk-mission-hero-art::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(231,241,255,.92),transparent 26%)}
+.wk-mission-detail-layout{display:grid;grid-template-columns:minmax(0,65fr) minmax(300px,35fr);align-items:start;gap:17px}
+.wk-mission-detail-main,.wk-mission-detail-side{display:grid;gap:17px;min-width:0}
+.wk-mission-detail-page .rq-panel{margin:0;border-radius:22px}
+.wk-mission-detail-page .rq-panel-heading{padding:15px 18px}
+.wk-mission-detail-page .rq-panel-heading h2{font-size:14px}
+.wk-mission-detail-page .rq-detail{padding:17px 18px}
+.wk-mission-about .rq-description{margin:0;color:#405d85;font-size:12px;line-height:1.75;white-space:pre-wrap}
+.wk-mission-facts-panel .rq-detail-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.wk-mission-facts-panel .rq-detail-grid>div{min-height:88px;padding:13px;border:1px solid rgba(255,255,255,.9);border-radius:15px;background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(234,242,255,.7));box-shadow:0 5px 13px rgba(42,78,134,.08)}
+.wk-mission-facts-panel dt{color:#547097;font-size:9px;font-weight:650}
+.wk-mission-facts-panel dd{margin-top:7px;color:#173e7c;font-size:11px;line-height:1.5}
+.wk-participation-card{background:linear-gradient(145deg,rgba(255,250,226,.96),rgba(255,240,172,.7) 50%,rgba(244,249,255,.88))!important}
+.wk-pay-card{padding:15px;border:1px solid rgba(255,255,255,.9);border-radius:17px;background:linear-gradient(145deg,#fff9dc,#ffe99c);box-shadow:0 8px 18px rgba(172,127,17,.12),inset 0 1px #fff}
+.wk-pay-card .wk-detail-pay{margin:0;color:#163f84!important;font-size:clamp(28px,3vw,38px)!important;line-height:1.05}
+.wk-pay-card>p:last-child{margin-top:6px;color:#6e622f;font-size:9px}
+.wk-mission-detail-page .wk-places{margin:12px 0 0!important;padding:10px 12px;border:1px solid #c7ead5;border-radius:13px;background:#e7f8ee;color:#17633b;font-size:11px;font-weight:650}
+.wk-application-state{display:grid;gap:9px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(73,103,143,.14)}
+.wk-application-state>p{color:#617795;font-size:10px}
+.wk-application-state .rq-button{width:100%}
+.wk-apply-panel .rq-detail{padding-top:14px}
+.wk-apply-panel .wk-apply-form{max-width:none}
+.wk-apply-panel .wk-apply-form textarea{min-height:104px}
+.wk-apply-panel .wk-apply-form .wk-full-button{width:100%;max-width:none;margin-top:13px}
+.wk-apply-panel .wk-apply-form>p:last-child{display:none}
+.wk-closed-notice{margin:0!important}
+.wk-mission-actions-panel .rq-detail{display:grid;gap:9px}
+.wk-mission-actions-panel .wk-favorite{width:100%;margin:0}
+.wk-mission-actions-panel section[aria-label="Signaler un problème"]{margin:0!important}
+.wk-mission-actions-panel section[aria-label="Signaler un problème"]>button{width:100%}
+.wk-mission-actions-panel section[aria-label="Signaler un problème"] .rq-form{padding:14px 0 0}
+@media(max-width:1100px){.wk-mission-hero{grid-template-columns:minmax(0,1fr) 310px}.wk-mission-detail-layout{grid-template-columns:minmax(0,3fr) minmax(280px,2fr)}.wk-mission-facts-panel .rq-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:820px){.wk-mission-hero{grid-template-columns:1fr}.wk-mission-hero-copy{order:2;padding:18px}.wk-mission-hero .wk-mission-art.wk-mission-hero-art{order:1;min-height:150px;height:150px}.wk-mission-hero .wk-mission-hero-art::after{background:linear-gradient(180deg,transparent 55%,rgba(235,243,255,.85))}.wk-mission-detail-layout{grid-template-columns:1fr}.wk-mission-detail-side{order:2}}
+@media(max-width:560px){.wk-mission-detail-title{align-items:flex-start}.wk-mission-hero{border-radius:19px}.wk-mission-hero h1{font-size:23px}.wk-mission-facts-panel .rq-detail-grid{grid-template-columns:1fr}.wk-mission-facts-panel .rq-detail-grid>div{min-height:0}.wk-mission-detail-page .rq-panel{border-radius:18px}.wk-mission-detail-page .rq-detail{padding:15px}.wk-mission-detail-side{gap:13px}.wk-apply-panel .wk-apply-form textarea{min-height:90px}}

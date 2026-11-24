@@ -10,9 +10,9 @@ export const idSchema = z.coerce.number().int().positive().safe();
 export const missionInput = missionCreateSchema;
 export const missionUpdate = missionPatchSchema;
 export const fail = (status: number, error: string) => NextResponse.json({error},{status});
-export type RouteContext = {params:Promise<{id?:string}>};
-export function protectedRoute(roles: readonly Role[], handler: (request: Request, context: RouteContext, user: NonNullable<Awaited<ReturnType<typeof requireRole>>["user"]>) => Promise<Response>) {
-  return async (request: Request, context: RouteContext) => {
+export type RouteContext<T extends Record<string, string | undefined> = {id?:string}> = {params:Promise<T>};
+export function protectedRoute<T extends Record<string, string | undefined> = {id?:string}>(roles: readonly Role[], handler: (request: Request, context: RouteContext<T>, user: NonNullable<Awaited<ReturnType<typeof requireRole>>["user"]>) => Promise<Response>) {
+  return async (request: Request, context: RouteContext<T>) => {
     const auth = await requireRole(roles);
     if (auth.response) return auth.response;
     if (auth.user.role === "RECRUTEUR") {

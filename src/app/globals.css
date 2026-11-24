@@ -8,3 +8,15 @@ h1{font-size:clamp(28px,5vw,36px);line-height:1.15;font-weight:700;margin-top:20
 input:not([type=checkbox]):not([type=radio]){width:100%;padding:12px;font-weight:400}
 .button{display:inline-flex;justify-content:center;align-items:center;padding:12px 18px;font-size:14px;font-weight:600;cursor:pointer}
 button:disabled{opacity:.6;cursor:wait}
+
+/* Hide scrollbar chrome everywhere without disabling scrolling. */
+*{
+  -ms-overflow-style:none!important;
+  scrollbar-width:none!important;
+}
+*::-webkit-scrollbar{
+  display:none!important;
+  width:0!important;
+  height:0!important;
+  background:transparent!important;
+}

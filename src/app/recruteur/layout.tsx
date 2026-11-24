@@ -3,6 +3,7 @@ import { requirePageRole } from "@/lib/authorization";
 import "./recruiter.css";
 import "../premium-dashboard.css";
 import "./recruiter-dashboard.css";
+import "../floating-shell.css";
 
 export const metadata: Metadata = { title: { default: "Espace recruteur | QuickJob", template: "%s | QuickJob" }, robots: { index: false, follow: false } };
 export default async function RecruiterLayout({ children }: { children: React.ReactNode }) {

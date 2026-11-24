@@ -2,17 +2,13 @@ import "server-only";
 import { cache } from "react";
 import { NextResponse } from "next/server";
 import { redirect } from "next/navigation";
-import prisma from "./prisma";
 import { getSession } from "./session";
+export { publicUserSelect } from "./auth-user";
 import { dashboardPath } from "./roles";
 import { recruiterApprovalPath } from "./recruiter-approval";
 export const ROLES = ["TRAVAILLEUR", "RECRUTEUR", "ADMIN"] as const;
 export type Role = typeof ROLES[number];
-export const publicUserSelect = { id: true, name: true, firstName: true, email: true, role: true, createdAt: true, suspended: true, recruiterVerification: { select: { status: true } } } as const;
-const getCurrentUser = cache(async () => {
-  const session = await getSession();
-  return session ? prisma.user.findUnique({where:{id:session.userId},select:publicUserSelect}) : null;
-});
+const getCurrentUser = cache(getSession);
 export async function requireRole(roles: readonly Role[] = ROLES) {
   const user = await getCurrentUser();
   if (!user || user.suspended) return { user: null, response: NextResponse.json({error:"Non authentifié"},{status:401}) };

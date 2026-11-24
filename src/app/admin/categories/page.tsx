@@ -2,13 +2,16 @@ import { requirePageRole } from "@/lib/authorization";
 import prisma from "@/lib/prisma";
 import { listInput } from "@/lib/admin-validation";
 import { categoryKey } from "@/lib/category-name";
-import { PageHeading, Panel } from "@/components/recruiter/ui";
+import Icon from "@/components/recruiter/Icon";
 import CategoryManager from "@/components/admin/CategoryManager";
 import AdminPagination from "@/components/admin/AdminPagination";
+import { AdminListCard, AdminPageHeader } from "@/components/admin/AdminUi";
+import AutoFilterForm from "@/components/filters/AutoFilterForm";
 export default async function CategoriesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  await requirePageRole(["ADMIN"]); const parsed = listInput.safeParse(await searchParams), input = parsed.success ? parsed.data : listInput.parse({});
-  const where = input.q ? { name: { contains: input.q } } : {};
-  const [items, total, usage] = await Promise.all([prisma.category.findMany({ where, orderBy: { name: "asc" }, take: 25, skip: (input.page - 1) * 25 }), prisma.category.count({ where }), prisma.mission.groupBy({ by: ["category"], _count: { _all: true } })]);
-  const counts = new Map<string, number>(); for (const m of usage) if (m.category) { const key = categoryKey(m.category); counts.set(key, (counts.get(key) || 0) + m._count._all); }
-  return <><PageHeading title="Catégories" description="Créez, renommez ou désactivez les catégories. Aucune suppression définitive n’est proposée afin de préserver les missions." /><form className="rq-filters" method="GET"><label className="rq-field">Recherche<input name="q" maxLength={160} defaultValue={input.q} /></label><button className="rq-button rq-primary">Rechercher</button></form>{!parsed.success && <p role="alert" className="rq-error">Filtres invalides.</p>}<Panel title={`${total} catégorie(s)`}><CategoryManager categories={items.map(c => ({ id: c.id, name: c.name, active: c.active, usage: counts.get(c.key) || 0 }))} /><AdminPagination page={input.page} total={total} query={{ q: input.q }} /></Panel></>;
+  await requirePageRole(["ADMIN"]); const parsed = listInput.safeParse(await searchParams), input = parsed.success ? parsed.data : listInput.parse({}); const where = input.q ? { name: { contains: input.q } } : {};
+  const [items, total, usage] = await Promise.all([prisma.category.findMany({ where, orderBy: { name: "asc" }, take: 25, skip: (input.page - 1) * 25 }), prisma.category.count({ where }), prisma.mission.groupBy({ by: ["category"], _count: { _all: true } })]); const counts = new Map<string, number>(); for (const mission of usage) if (mission.category) { const key = categoryKey(mission.category); counts.set(key, (counts.get(key) || 0) + mission._count._all); }
+  return <main className="qa-admin-page"><AdminPageHeader icon="layers" title="Catégories" description="Gérez les catégories utilisées pour classer les missions." />
+    <AutoFilterForm key={JSON.stringify(input)} resetHref="/admin/categories" ariaLabel="Filtrer les catégories"><label className="qj-filter-field qj-filter-search"><span>Recherche</span><div><Icon name="search" size={18} /><input type="search" name="q" maxLength={160} defaultValue={input.q} placeholder="Rechercher une catégorie…" /></div></label></AutoFilterForm>{!parsed.success && <p role="alert" className="rq-error">Filtres invalides.</p>}
+    <AdminListCard title={`${total} catégorie${total !== 1 ? "s" : ""}`}><CategoryManager categories={items.map(category => ({ id: category.id, name: category.name, active: category.active, usage: counts.get(category.key) || 0 }))} /><AdminPagination page={input.page} total={total} query={{ q: input.q }} /></AdminListCard>
+  </main>;
 }

@@ -3,6 +3,7 @@ import { calendarMonthInput, localParts } from "@/lib/schedule-time";
 import { calendarData } from "@/lib/schedule-service";
 import { PageHeading } from "@/components/recruiter/ui";
 import WorkerCalendar from "@/components/worker/WorkerCalendar";
+import "./calendar-premium.css";
 export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ month?: string }> }) {
   const user = await requirePageRole(["TRAVAILLEUR"]);
   const input = calendarMonthInput.safeParse((await searchParams).month ?? localParts(new Date()).date.slice(0, 7));

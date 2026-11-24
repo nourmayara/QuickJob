@@ -92,16 +92,18 @@ try {
     check((await db.mission.findUniqueOrThrow({ where: { id: created.id } })).pay === 110, "Browser modification persists");
     await browser.cookie(worker.cookie);
     await browser.go(`/dashboard/travailleur/missions?q=${prefix}`);
-    await browser.evaluate(`(() => { const values={city:'Sousse',category:'Restauration',date:'2035-12-15',payMin:'100',payMax:'120'}; for(const [key,value] of Object.entries(values)) document.querySelector('[name='+key+']').value=value; document.querySelector('.wk-search button').click(); })()`);
-    await browser.until("location.search.includes('Sousse') && document.querySelectorAll('.wk-mission-card').length===1");
+    await new Promise(resolve => setTimeout(resolve, 700));
+    await browser.evaluate(`(() => { const values={category:'Restauration',date:'2035-12-15',payMin:'100',payMax:'120'}; for(const [key,value] of Object.entries(values)) document.querySelector('[name='+key+']').value=value; const city=document.querySelector('[name=city]');city.value='';city.focus(); })()`);
+    await browser.cdp("Input.insertText", { text: "Sousse" });
+    await browser.until("location.search.includes('Sousse') && document.querySelectorAll('.wk-compact-mission-card').length===1");
     check(true, "Browser combined filters");
     for (const width of [1440, 900, 390]) {
       await browser.cdp("Emulation.setDeviceMetricsOverride", { width, height: 1000, deviceScaleFactor: 1, mobile: width < 760 });
       if (width < 760) await browser.until("document.querySelector('.rq-sidebar').getBoundingClientRect().right <= 1");
       check(await browser.evaluate("document.documentElement.scrollWidth <= innerWidth"), `Responsive search ${width}`);
     }
-    await browser.evaluate(`document.querySelector('a[href="/dashboard/travailleur/missions"]').click()`);
-    await browser.until("location.search==='' && !!document.querySelector('.wk-search')");
+    await browser.evaluate("document.querySelector('.qj-filter-reset').click()");
+    await browser.until("location.search==='' && !!document.querySelector('.qj-filter-bar')");
     check(await browser.evaluate("document.querySelector('[name=city]').value==='' && document.querySelector('[name=payMin]').value===''") , "Reset clears filters");
     await browser.go(`/dashboard/travailleur/missions/${created.id}`);
     for (const value of [body.description, body.address, "Sousse", "110", body.skills, body.experience]) check(await browser.evaluate(`document.body.textContent.includes(${JSON.stringify(value)})`), `Detail displays ${value}`);

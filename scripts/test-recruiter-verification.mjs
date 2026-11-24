@@ -40,6 +40,7 @@ try{
  const admin=await login(await db.user.create({data:{name:"Admin test",firstName:"Sarah",email:`${prefix}admin@example.invalid`,password:hash,role:"ADMIN"}}));
  const admin2=await login(await db.user.create({data:{name:"Admin test 2",email:`${prefix}admin2@example.invalid`,password:hash,role:"ADMIN"}}));
  const pending=await register("pending"),refused=await register("refused"),race=await register("race"),suspended=await register("suspended"),worker=await register("worker","TRAVAILLEUR");
+ await db.user.update({where:{id:pending.id},data:{recruiterType:"COMPANY",companyName:"Organisation Aurora"}});
  check(pending.role==="RECRUTEUR"&&pending.recruiterVerification.status==="EN_ATTENTE","Browser-supplied approval is ignored");
  const request=await db.recruiterVerification.findUniqueOrThrow({where:{userId:pending.id}});check(!!request.requestedAt&&!request.legacy&&!request.decidedById&&!request.decidedAt,"Real pending request has request date and no decision");
  await call("/recruteur/en-attente",200,pending.cookie);
@@ -52,6 +53,9 @@ try{
  await call("/api/admin/recruteurs",401);await call("/api/admin/recruteurs",403,worker.cookie);await call(`/api/admin/recruteurs/${pending.id}`,403,pending.cookie,"PATCH",{status:"APPROUVE"});
  await call(`/api/admin/recruteurs/${pending.id}`,403,worker.cookie,"PATCH",{status:"APPROUVE"});
  const list=await (await call("/api/admin/recruteurs",200,admin.cookie)).json();check(list.items.some(item=>item.userId===pending.id),"Admin sees real pending requests");
+ const today=new Date().toISOString().slice(0,10),combined=await (await call(`/api/admin/recruteurs?status=EN_ATTENTE&q=Organisation%20Aurora&recruiterType=COMPANY&date=${today}`,200,admin.cookie)).json();
+ check(combined.total===1&&combined.items[0]?.userId===pending.id,"Recruiter filters combine unified search, status, type and registration date");
+ const emailSearch=await (await call(`/api/admin/recruteurs?q=${encodeURIComponent(pending.email)}`,200,admin.cookie)).json();check(emailSearch.total===1&&emailSearch.items[0]?.userId===pending.id,"Unified recruiter search matches email");
  const detail=await (await call(`/api/admin/recruteurs/${pending.id}`,200,admin.cookie)).json();check(!JSON.stringify(detail).includes("password")&&detail.user.email===pending.email,"Admin details expose no password hash");
  await call("/admin/recruteurs",200,admin.cookie);await call(`/admin/recruteurs/${pending.id}`,200,admin.cookie);
  await call(`/api/admin/recruteurs/${pending.id}`,400,admin.cookie,"PATCH",{status:"ADMIN"});await call(`/api/admin/recruteurs/${refused.id}`,400,admin.cookie,"PATCH",{status:"REFUSE",reason:"   "});
@@ -64,11 +68,14 @@ try{
  await call(`/api/admin/recruteurs/${pending.id}`,409,admin.cookie,"PATCH",{status:"REFUSE",reason:"Already processed"});
  const approvalNotifications=await (await call("/api/notifications",200,pending.cookie)).json();check(approvalNotifications.length===1&&approvalNotifications[0].message.includes("a été approuvé"),"One persisted approval notification, only for its recipient");
  check((await (await call("/api/notifications",200,worker.cookie)).json()).length===0,"Worker cannot read recruiter notification");
+ await db.notification.create({data:{userId:refused.id,verificationId:refused.id,kind:"VERIFICATION",message:"Votre demande de vérification est en attente de traitement.",readAt:new Date()}});
  await call(`/api/admin/recruteurs/${refused.id}`,200,admin.cookie,"PATCH",{status:"REFUSE",reason:"Veuillez préciser les informations de votre organisation."});
  await pageRedirect("/recruteur/dashboard",refused.cookie,"/recruteur/refuse");
  const refusalPage=await (await call("/recruteur/refuse",200,refused.cookie)).text();check(refusalPage.includes("Veuillez préciser les informations"),"Refusal page shows real reason");
  await call("/api/missions",403,refused.cookie,"POST",missionInput);check((await login(refused)).recruiterVerification.status==="REFUSE","Refused login keeps refused status");
- check((await db.notification.count({where:{userId:refused.id}}))===1,"Refusal notification persisted");
+ const refusalNotification=await db.notification.findUniqueOrThrow({where:{verificationId:refused.id}});
+ check(await db.notification.count({where:{userId:refused.id}})===1&&refusalNotification.message.includes("refusée")&&refusalNotification.kind==="VERIFICATION"&&refusalNotification.readAt===null,"Refusal replaces the pending notification without a duplicate");
+ const refusedFilter=await (await call(`/api/admin/recruteurs?status=REFUSE&q=${encodeURIComponent(refused.email)}&recruiterType=INDIVIDUAL`,200,admin.cookie)).json();check(refusedFilter.total===1&&refusedFilter.items[0]?.userId===refused.id,"Refused recruiter filter returns the matching individual");
  const decisions=await Promise.all([[admin,"APPROUVE"],[admin2,"REFUSE"]].map(async([actor,status])=>fetch(`${base}/api/admin/recruteurs/${race.id}`,{method:"PATCH",headers:{Cookie:actor.cookie,"Content-Type":"application/json"},body:JSON.stringify({status,reason:"Concurrent refusal"})})));
  check(decisions.filter(response=>response.status===200).length===1&&decisions.every(response=>[200,409].includes(response.status)),`Exactly one concurrent decision succeeds: ${decisions.map(r=>r.status)}`);
  const concurrent=await db.recruiterVerification.findUniqueOrThrow({where:{userId:race.id}});check([admin.id,admin2.id].includes(concurrent.decidedById)&&await db.notification.count({where:{userId:race.id}})===1,"Concurrent decision has one audit record and notification");
